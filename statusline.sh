@@ -24,6 +24,9 @@ BG_LOGO="ea4335" ; FG_LOGO="ffffff"
 BG_DIR="4285f4"  ; FG_DIR="ffffff"
 BG_GIT="fbbc05"  ; FG_GIT="202124"  ; FG_ADD="137333" ; FG_DEL="a50e0e"
 BG_USE="5f6368" ; FG_USE="ffffff"
+# 用量文字依百分比換色（灰底上可讀的 Google 淺色調）：
+#   <40 白 / 40-59 綠 / 60-74 黃 / 75-89 橙 / >=90 紅
+LV_OK="ffffff" ; LV_GREEN="81c995" ; LV_YELLOW="fdd663" ; LV_ORANGE="fcad70" ; LV_RED="f28b82"
 BG_CC="34a853"   ; FG_CC="ffffff"   ; FG_DIM="d7f0dd" ; BD_CC="ea4335"
 
 # Claude 那顆的膠囊樣式: solid=實心 / outline=描邊+底色 / hollow=描邊不填底
@@ -111,8 +114,20 @@ c=""
 S="  "
 seg() { [ -n "$c" ] && c="$c$S" ; c="$c$1" ; }
 
-[ -n "$CTX" ] && seg "$I_CTX ${CTX%.*}%"
-[ -n "$H5" ]  && seg "$I_H5 ${H5%.*}%"
-[ -n "$D7" ]  && seg "$I_D7 ${D7%.*}%"
+lvl() { # $1=百分比 -> 輸出對應文字色 hex
+  local n=${1%.*} ; n=${n:-0}
+  if   [ "$n" -ge 90 ]; then printf '%s' "$LV_RED"
+  elif [ "$n" -ge 75 ]; then printf '%s' "$LV_ORANGE"
+  elif [ "$n" -ge 60 ]; then printf '%s' "$LV_YELLOW"
+  elif [ "$n" -ge 40 ]; then printf '%s' "$LV_GREEN"
+  else printf '%s' "$LV_OK"; fi
+}
+use() { # $1=圖示 $2=百分比；圖示維持預設色，只有數字換色
+  seg "$1 $(esc 3 "$(lvl "$2")")${2%.*}%$(esc 3 "$FG_USE")"
+}
+
+[ -n "$CTX" ] && use "$I_CTX" "$CTX"
+[ -n "$H5" ]  && use "$I_H5" "$H5"
+[ -n "$D7" ]  && use "$I_D7" "$D7"
 
 [ -n "$c" ] && cap "$BG_USE" "$FG_USE" " $c "
