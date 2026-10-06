@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ~/.claude/statusline.sh — solid powerline capsules
 #
-#     dir     branch  +N -N     Model   acct   ctx%  5h%  7d% 
+#     acct     Model     dir     branch  +N -N     ctx%  5h%  7d% 
 #
 # 需要 Nerd Font。圖示集中在下面 ICON 區，要換直接改那幾行。
 # CLAUDE_STATUSLINE_DEBUG=1 -> 把 stdin 原始 JSON 存到 /tmp/claude-statusline-debug.json
