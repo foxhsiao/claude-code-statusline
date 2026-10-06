@@ -4,6 +4,8 @@ Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
 顯示：火箭 logo + 目前模型 ｜ 資料夾 ｜ git 分支與增刪行數 ｜ 帳號 ｜ 用量（context %、5h %、7d %）
 
+![statusline screenshot](docs/screenshot.png)
+
 ## 需求
 
 - [Nerd Font](https://www.nerdfonts.com/)
