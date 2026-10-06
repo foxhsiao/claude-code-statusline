@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ~/.claude/statusline.sh — solid powerline capsules
 #
-#     dir     branch  +N -N     acct  Model (eff)  ctx%  5h%  7d% 
+#     dir     branch  +N -N     Model   acct   ctx%  5h%  7d% 
 #
 # 需要 Nerd Font。圖示集中在下面 ICON 區，要換直接改那幾行。
 # CLAUDE_STATUSLINE_DEBUG=1 -> 把 stdin 原始 JSON 存到 /tmp/claude-statusline-debug.json
@@ -14,7 +14,7 @@ I_CAP_L=""   ; I_CAP_R=""    # U+E0B6 / U+E0B4
 I_ARC_L=""   ; I_ARC_R=""    # U+E0B7 / U+E0B5  細圓弧（描邊）
 I_DIR=""      ; I_BRANCH="󰘬"    # U+F114 / U+F062C
 I_DIFF="󰦓"     ; I_USER=""      # U+F0993 / U+F1A0
-I_MODEL="󰧑"    ; I_CTX="󰍛"       # U+F09D1 / U+F035B  nf-md-memory
+I_CTX="󰍛"       # U+F09D1 / U+F035B  nf-md-memory
 I_H5=""       ; I_D7=""        # U+F017 / U+F455
 I_LOGO="󱓞"                        # U+F14DE  nf-md-rocket-launch
 
@@ -23,6 +23,7 @@ I_LOGO="󱓞"                        # U+F14DE  nf-md-rocket-launch
 BG_LOGO="ea4335" ; FG_LOGO="ffffff"
 BG_DIR="4285f4"  ; FG_DIR="ffffff"
 BG_GIT="fbbc05"  ; FG_GIT="202124"  ; FG_ADD="137333" ; FG_DEL="a50e0e"
+BG_USE="5f6368" ; FG_USE="ffffff"
 BG_CC="34a853"   ; FG_CC="ffffff"   ; FG_DIM="d7f0dd" ; BD_CC="ea4335"
 
 # Claude 那顆的膠囊樣式: solid=實心 / outline=描邊+底色 / hollow=描邊不填底
@@ -87,8 +88,10 @@ capo() { # $1=底色 $2=文字 $3=邊框 $4=內容
   esac
 }
 
-# ── 最左：火箭標誌 ─────────────────────────────────────────────
-cap "$BG_LOGO" "$FG_LOGO" " $I_LOGO "
+# ── 最左：火箭標誌 + 目前模型 ─────────────────────────────────────────────
+LOGO_TXT=" $I_LOGO "
+[ -n "$MODEL" ] && LOGO_TXT=" $I_LOGO ${MODEL%% (*} "
+cap "$BG_LOGO" "$FG_LOGO" "$LOGO_TXT"
 
 # ── 第一顆：目前資料夾 ─────────────────────────────────────────
 cap "$BG_DIR" "$FG_DIR" " $I_DIR $DIR "
@@ -100,16 +103,16 @@ if [ "$IN_REPO" = "1" ]; then
   cap "$BG_GIT" "$FG_GIT" "$g"
 fi
 
-# ── 第三顆：帳號 / 模型 / 用量 ─────────────────────────────────
-M="$(esc 3 "$FG_CC")"
-S="  "
+# ── 第三顆：帳號 ───────────────────────────────────────────────
+[ -n "$ACCT" ] && capo "$BG_CC" "$FG_CC" "$BD_CC" " $I_USER $ACCT "
+
+# ── 第四顆：用量（context / 5h / 7d）──────────────────────────
 c=""
-seg() { [ -n "$c" ] && c="$c$S" ; c="$c$M$1" ; }
+S="  "
+seg() { [ -n "$c" ] && c="$c$S" ; c="$c$1" ; }
 
-[ -n "$ACCT" ]  && seg "$I_USER $ACCT"
-[ -n "$MODEL" ] && seg "$I_MODEL ${MODEL%% (*}"
-[ -n "$CTX" ]   && seg "$I_CTX ${CTX%.*}%"
-[ -n "$H5" ]    && seg "$I_H5 ${H5%.*}%"
-[ -n "$D7" ]    && seg "$I_D7 ${D7%.*}%"
+[ -n "$CTX" ] && seg "$I_CTX ${CTX%.*}%"
+[ -n "$H5" ]  && seg "$I_H5 ${H5%.*}%"
+[ -n "$D7" ]  && seg "$I_D7 ${D7%.*}%"
 
-[ -n "$c" ] && capo "$BG_CC" "$FG_CC" "$BD_CC" " $c "
+[ -n "$c" ] && cap "$BG_USE" "$FG_USE" " $c "
