@@ -60,3 +60,7 @@ chmod +x ~/.claude/statusline.sh
 - `statusline-icons.sh` 可在終端機預覽候選圖示。
 - `CC_STYLE` 可選 `solid` / `outline` / `hollow`。
 - `CLAUDE_STATUSLINE_DEBUG=1` 會把 stdin JSON 存到 `/tmp/claude-statusline-debug.json`。
+
+## 授權
+
+[MIT License](LICENSE)
