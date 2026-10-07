@@ -14,7 +14,7 @@ I_CAP_L=""   ; I_CAP_R=""    # U+E0B6 / U+E0B4
 I_ARC_L=""   ; I_ARC_R=""    # U+E0B7 / U+E0B5  細圓弧（描邊）
 I_DIR=""      ; I_BRANCH="󰘬"    # U+F114 / U+F062C
 I_DIFF="󰦓"     ; I_USER=""      # U+F0993 / U+F1A0
-I_CTX="󰍛"       # U+F09D1 / U+F035B  nf-md-memory
+I_CTX="󰪡"       # circle-slice-1..8（U+F0A9E~F0AA5），依 ctx% 由 ctx_icon 挑格數
 I_H5=""       ; I_D7=""        # U+F017 / U+F455
 I_LOGO="󱓞"                        # U+F14DE  nf-md-rocket-launch
 
@@ -126,7 +126,15 @@ use() { # $1=圖示 $2=百分比；圖示維持預設色，只有數字換色
   seg "$1 $(esc 3 "$(lvl "$2")")${2%.*}%$(esc 3 "$FG_USE")"
 }
 
-[ -n "$CTX" ] && use "$I_CTX" "$CTX"
+CTX_ICONS=("󰪞" "󰪟" "󰪠" "󰪡" "󰪢" "󰪣" "󰪤" "󰪥")
+ctx_icon() { # $1=百分比 -> circle-slice-1..8，1/8 起跳、滿格 8/8
+  local n=${1%.*} ; n=${n:-0}
+  local k=$(( (n * 8 + 99) / 100 ))
+  [ "$k" -lt 1 ] && k=1 ; [ "$k" -gt 8 ] && k=8
+  printf '%s' "${CTX_ICONS[k-1]}"
+}
+
+[ -n "$CTX" ] && use "$(ctx_icon "$CTX")" "$CTX"
 [ -n "$H5" ]  && use "$I_H5" "$H5"
 [ -n "$D7" ]  && use "$I_D7" "$D7"
 
