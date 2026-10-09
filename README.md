@@ -86,8 +86,6 @@ chmod +x ~/.claude/statusline.sh
 
 **mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區；模型顯示名稱由 `modelName()` 從 model ID 轉出。
 
-帳號那顆膠囊的樣式可在 plugin 設定選單的 `Account capsule style` 選：`solid`（實心，預設）、`outline`（圓弧描邊加底色）、`hollow`（只有描邊，不填底色），等同 shell 版的 `CC_STYLE`。
-
 **shell script 版**：
 
 - 圖示與配色在 `statusline.sh` 上方的 ICON / 配色區。
