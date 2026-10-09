@@ -1,6 +1,6 @@
 {
   "name": "statusline-capsule",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Powerline capsule status band above the prompt (model, dir, git, account, usage) in Google's four colors.",
   "types": "./types/index.d.ts",
   "author": {

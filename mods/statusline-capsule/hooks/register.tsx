@@ -8,6 +8,8 @@ const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
 // Nerd Font glyphs (code points as in statusline.sh)
 const CAP_L = ''
 const CAP_R = ''
+const ARC_L = '\ue0b7'
+const ARC_R = '\ue0b5'
 const I_DIR = ''
 const I_BRANCH = '\u{f062c}'
 const I_DIFF = '\u{f0993}'
