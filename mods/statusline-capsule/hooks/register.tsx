@@ -21,6 +21,7 @@ const CTX_ICONS = [0xf0a9e, 0xf0a9f, 0xf0aa0, 0xf0aa1, 0xf0aa2, 0xf0aa3, 0xf0aa4
 
 // Google palette
 const BG_CC = '#34a853'
+const BD_CC = '#ea4335'
 const BG_LOGO = '#ea4335'
 const BG_DIR = '#4285f4'
 const BG_GIT = '#fbbc05'
@@ -99,7 +100,12 @@ async function refresh($: EngineInterface) {
   await update($, info, () => next)
 }
 
-export const register: Register = on => {
+type Style = 'solid' | 'outline' | 'hollow'
+const styleOf = (v: unknown): Style => (v === 'outline' || v === 'hollow' ? v : 'solid')
+
+export const register: Register = (on, options) => {
+  const style = styleOf(options.style)
+
   on('session.start', async ($, e, next) => {
     await refresh($).catch(() => {})
     return next(e)
@@ -142,7 +148,20 @@ export const register: Register = on => {
 
     return (
       <Box>
-        {i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
+        {i.acct !== null && style === 'solid' && (
+          <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>
+        )}
+        {i.acct !== null && style !== 'solid' && (
+          <Box>
+            <Text color={BD_CC}>{ARC_L}</Text>
+            {style === 'outline' ? (
+              <Text backgroundColor={BG_CC} color={WHITE}>{` ${I_USER} ${i.acct} `}</Text>
+            ) : (
+              <Text color={WHITE}>{` ${I_USER} ${i.acct} `}</Text>
+            )}
+            <Text color={BD_CC}>{ARC_R} </Text>
+          </Box>
+        )}
         <Cap bg={BG_LOGO} fg={WHITE}>{` ${I_LOGO} ${i.model} `}</Cap>
         <Cap bg={BG_DIR} fg={WHITE}>{` ${I_DIR} ${i.dir} `}</Cap>
         {i.branch !== null && (
