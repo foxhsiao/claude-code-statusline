@@ -1,0 +1,14 @@
+{
+  "name": "claude-code-statusline",
+  "owner": {
+    "name": "foxhsiao"
+  },
+  "plugins": [
+    {
+      "name": "statusline-capsule",
+      "source": "./mods/statusline-capsule",
+      "description": "Powerline capsule status band above the prompt (model, dir, git, account, usage) in Google's four colors."
+    }
+  ],
+  "description": "Powerline capsule status band for Claude Code."
+}

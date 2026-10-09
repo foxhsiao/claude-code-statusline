@@ -54,6 +54,26 @@ chmod +x ~/.claude/statusline.sh
 
 再把 `settings.snippet.json` 的 `statusLine` 區塊合併進 `~/.claude/settings.json`。
 
+## 安裝成 mod（statusline-capsule）
+
+`mods/statusline-capsule/` 是同一個膠囊樣式的 Claude Code mod：畫在提示框上方，不需要 `jq` 或 `settings.json` 的 `statusLine`。同樣需要 Nerd Font。
+
+```
+/plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
+```
+
+輸入後依序按 `y` 加入 marketplace、選 scope（選 user 就會套用到所有 session）。
+
+從本機資料夾安裝：
+
+```
+/plugin install statusline-capsule --marketplace /path/to/claude-code-statusline
+```
+
+只想在單一 session 試用：`claude --plugin-dir mods/statusline-capsule`。改完程式後在 session 內執行 `/reload-plugins`。
+
+用 mod 就可以把 `settings.json` 裡原本的 `statusLine` 區塊移除。
+
 ## 自訂
 
 - 圖示與配色在 `statusline.sh` 上方的 ICON / 配色區。
