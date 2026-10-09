@@ -108,6 +108,12 @@ export const register: Register = on => {
     await refresh($).catch(() => {})
     return next(e)
   })
+  // tool calls change the working tree: refresh git after each one that writes
+  on('tool.call', async ($, e, next) => {
+    const ran = await next(e)
+    if (ran.isReadOnly !== true) await refresh($).catch(() => {})
+    return ran
+  })
   on('turn.complete', async ($, e, next) => {
     await refresh($).catch(() => {})
     return next(e)
