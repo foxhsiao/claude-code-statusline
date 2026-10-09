@@ -33,6 +33,18 @@ const FG_DEL = '#a50e0e'
 const levelColor = (n: number) =>
   n >= 90 ? '#f28b82' : n >= 75 ? '#fcad70' : n >= 60 ? '#fdd663' : n >= 40 ? '#81c995' : WHITE
 
+// claude-sonnet-5-5 -> Sonnet 5.5, claude-3-5-sonnet-20241022 -> Sonnet 3.5; anything else as is
+const cap1 = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
+const modelName = (id: string) => {
+  const base = id.replace(/\[.*\]$/, '').replace(/ \(.*/, '')
+  const m =
+    /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(base) ??
+    /^claude-(\d+)(?:-(\d{1,2}))?-([a-z]+)(?:-\d{8})?$/.exec(base)
+  if (!m) return base
+  const [family, major, minor] = /^\d/.test(m[1]) ? [m[3], m[1], m[2]] : [m[1], m[2], m[3]]
+  return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
+}
+
 const ctxIcon = (n: number) => {
   const k = Math.min(8, Math.max(1, Math.floor((n * 8 + 99) / 100)))
   return CTX_ICONS[k - 1]
@@ -40,7 +52,7 @@ const ctxIcon = (n: number) => {
 
 async function refresh($: EngineInterface) {
   const cwd = await $.session.cwd()
-  const model = (await $.session.model()).replace(/ \(.*/, '')
+  const model = modelName(await $.session.model())
   const usage = await $.session.usage()
   const pick = (kind: string) => usage.rateLimits.find(r => r.kind === kind)?.percentUsed ?? null
 
