@@ -1,0 +1,8 @@
+# Temporary: gives the ship-band mod a running check to display. Not meant to be merged.
+name: ship-band-probe
+on: pull_request
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 90
