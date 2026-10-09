@@ -2,14 +2,20 @@
 
 Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
-顯示：火箭 logo + 目前模型 ｜ 資料夾 ｜ git 分支與增刪行數 ｜ 帳號 ｜ 用量（context %、5h %、7d %）
+顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數 ｜ 用量（context %、5h %、7d %）
+
+有兩種版本：
+
+- **mod（建議）**：`mods/statusline-capsule/`，膠囊畫在提示框上方。
+- **shell script**：`statusline.sh`，走 `settings.json` 的 `statusLine`，畫在提示框下方。
 
 ![statusline screenshot](docs/screenshot.png)
 
 ## 需求
 
-- [Nerd Font](https://www.nerdfonts.com/)
-- `jq`、`git`、`bash`
+- [Nerd Font](https://www.nerdfonts.com/)（兩種版本都需要）
+- `git`
+- shell script 版另外需要 `jq`、`bash`
 
 ## 安裝 Nerd Font
 
@@ -45,18 +51,9 @@ fc-cache -fv
 - VS Code 內建終端機：設定 `terminal.integrated.fontFamily`，例如 `"JetBrainsMono Nerd Font"`
 - Warp：Settings → Appearance → Text → Terminal font
 
-## 安裝 statusline
+## 安裝 mod 版（statusline-capsule）
 
-```sh
-cp statusline.sh ~/.claude/statusline.sh
-chmod +x ~/.claude/statusline.sh
-```
-
-再把 `settings.snippet.json` 的 `statusLine` 區塊合併進 `~/.claude/settings.json`。
-
-## 安裝成 mod（statusline-capsule）
-
-`mods/statusline-capsule/` 是同一個膠囊樣式的 Claude Code mod：畫在提示框上方，不需要 `jq` 或 `settings.json` 的 `statusLine`。同樣需要 Nerd Font。
+`mods/statusline-capsule/` 是 Claude Code mod：膠囊畫在提示框上方，資料來自 `$.session`，不需要 `jq` 或 `settings.json` 的 `statusLine`。
 
 ```
 /plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
@@ -72,9 +69,24 @@ chmod +x ~/.claude/statusline.sh
 
 只想在單一 session 試用：`claude --plugin-dir mods/statusline-capsule`。改完程式後在 session 內執行 `/reload-plugins`。
 
-用 mod 就可以把 `settings.json` 裡原本的 `statusLine` 區塊移除。
+改用 mod 後，可以把 `settings.json` 裡原本的 `statusLine` 區塊移除，避免兩條同時出現。
+
+更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
+
+## 安裝 shell script 版
+
+```sh
+cp statusline.sh ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
+```
+
+再把 `settings.snippet.json` 的 `statusLine` 區塊合併進 `~/.claude/settings.json`。
 
 ## 自訂
+
+**mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區；模型顯示名稱由 `modelName()` 從 model ID 轉出。
+
+**shell script 版**：
 
 - 圖示與配色在 `statusline.sh` 上方的 ICON / 配色區。
 - `statusline-icons.sh` 可在終端機預覽候選圖示。
