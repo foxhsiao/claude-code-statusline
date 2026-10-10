@@ -73,6 +73,27 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
+### 窄終端機與長名稱
+
+膠囊寬度依提示框上方可用的欄數（`bodyColumns`）計算，中日韓字元算 2 格。空間不夠時，整個膠囊依序隱藏：
+
+1. 帳號
+2. 資料夾
+3. git 分支與增刪行數
+
+模型與用量永遠保留。隱藏是整個膠囊一起拿掉，不會把單一膠囊截短。
+
+資料夾與分支名超過上限時，保留開頭並以 `…` 結尾（結尾的內容會被截掉）：
+
+| 常數 | 預設 | 說明 |
+| --- | --- | --- |
+| `MAX_DIR` | 20 | 資料夾名稱最多顯示格數 |
+| `MAX_BRANCH` | 24 | 分支名稱最多顯示格數 |
+
+截斷發生在寬度判斷之前，所以隱藏順序用的是截斷後的實際寬度。常數在 `mods/statusline-capsule/hooks/register.tsx`。
+
+版本異動見 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 安裝 ship-band mod
 
 `mods/ship-band/` 在提示框上方多一行發佈狀態：目前分支的 PR、CI、是否已合併、工作區是否乾淨，以及（選用）正式站是不是 main 的最新版。需要 `git` 和 [`gh`](https://cli.github.com/)（已登入）。
@@ -96,7 +117,7 @@ chmod +x ~/.claude/statusline.sh
 
 ## 自訂
 
-**mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區；模型顯示名稱由 `modelName()` 從 model ID 轉出。
+**mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區，名稱長度上限 `MAX_DIR`／`MAX_BRANCH` 也在這個檔案；模型顯示名稱由 `modelName()` 從 model ID 轉出。
 
 **shell script 版**：
 
