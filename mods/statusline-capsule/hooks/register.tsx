@@ -45,6 +45,18 @@ const modelName = (id: string) => {
   return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
 }
 
+// display cells: CJK / fullwidth count 2, everything else 1 (Nerd Font glyphs are single-cell)
+const cells = (str: string) => {
+  let w = 0
+  for (const ch of str) {
+    const c = ch.codePointAt(0) ?? 0
+    w += (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) ||
+      (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe6f) || (c >= 0xff00 && c <= 0xff60) ||
+      (c >= 0xffe0 && c <= 0xffe6) ? 2 : 1
+  }
+  return w
+}
+
 const ctxIcon = (n: number) => {
   const k = Math.min(8, Math.max(1, Math.floor((n * 8 + 99) / 100)))
   return CTX_ICONS[k - 1]
@@ -140,12 +152,30 @@ export const register: Register = on => {
     if (i.h5 !== null) uses.push([I_H5, i.h5])
     if (i.d7 !== null) uses.push([I_D7, i.d7])
 
+    // each capsule is its text plus the two caps and a trailing space
+    const useText = ' ' + uses.map(([icon, n], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%`).join('') + ' '
+    const w = {
+      acct: i.acct === null ? 0 : cells(` ${I_USER} ${i.acct} `) + 3,
+      model: cells(` ${I_LOGO} ${i.model} `) + 3,
+      dir: cells(` ${I_DIR} ${i.dir} `) + 3,
+      git: i.branch === null ? 0 : cells(` ${I_BRANCH} ${i.branch}  ${I_DIFF} +${i.add} -${i.del} `) + 3,
+      use: uses.length === 0 ? 0 : cells(useText) + 2,
+    }
+    // too narrow: drop the account, then the folder, then git; model and usage stay
+    const show = { acct: true, dir: true, git: true }
+    const total = () =>
+      w.model + w.use + (show.acct ? w.acct : 0) + (show.dir ? w.dir : 0) + (show.git ? w.git : 0)
+    for (const k of ['acct', 'dir', 'git'] as const) {
+      if (total() <= e.props.bodyColumns) break
+      show[k] = false
+    }
+
     return (
       <Box>
-        {i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
+        {show.acct && i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
         <Cap bg={BG_LOGO} fg={WHITE}>{` ${I_LOGO} ${i.model} `}</Cap>
-        <Cap bg={BG_DIR} fg={WHITE}>{` ${I_DIR} ${i.dir} `}</Cap>
-        {i.branch !== null && (
+        {show.dir && <Cap bg={BG_DIR} fg={WHITE}>{` ${I_DIR} ${i.dir} `}</Cap>}
+        {show.git && i.branch !== null && (
           <Box>
             <Text color={BG_GIT}>{CAP_L}</Text>
             <Text backgroundColor={BG_GIT} color={DARK}>{` ${I_BRANCH} ${i.branch}  ${I_DIFF} `}</Text>
