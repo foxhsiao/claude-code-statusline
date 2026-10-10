@@ -2,9 +2,13 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.5.3
+
+- CI 狀態改成單一 Nerd Font 圖示，拿掉 `CI` 字樣：通過是圈圈打勾（綠）、失敗是圈圈打叉（紅）、執行中是循環箭頭（黃）。與膠囊其他圖示對齊，也比原本的 `CI✓` 少佔兩格寬度。
+
 ## statusline-capsule 0.5.2
 
-- CI 執行中的圓圈改用 Nerd Font 圖示，修正原本的 `●` 因字型補字而垂直置中偏移（往下掉）的問題。
+- CI 執行中的圓圈改用 Nerd Font 圖示（U+F111），因為原本的 `●` 在終端機裡畫在文字基線下方。**更正**：此版本原先寫的原因（字型沒有 `●`、終端機補字造成偏移）不實，後來查證 `●` 其實在 JetBrainsMono Nerd Font 裡，偏移的真正原因未確認。
 
 ## statusline-capsule 0.5.1
 

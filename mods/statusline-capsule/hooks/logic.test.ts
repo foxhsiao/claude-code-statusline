@@ -72,7 +72,7 @@ describe('chips', () => {
       isInMain: false,
       pr: { number: 12, state: 'OPEN', isDraft: false, checks: 'pending' },
     }
-    expect(texts(r)).toEqual(['#12', 'CI\u{f111}'])
+    expect(texts(r)).toEqual(['#12', '\u{f021}'])
   })
   test('merged PR with green CI and a stale deploy', () => {
     const r: Remote = {
@@ -81,11 +81,11 @@ describe('chips', () => {
       pr: { number: 7, state: 'MERGED', isDraft: false, checks: 'pass' },
       deploy: { status: 'behind', deployed: 'aaaaaaa1111', main: 'bbbbbbb2222' },
     }
-    expect(texts(r)).toEqual(['#7 已合併', 'CI✓', '部署落後'])
+    expect(texts(r)).toEqual(['#7 已合併', '\u{f058}', '部署落後'])
   })
   test('failed CI is bad, a closed PR is bad', () => {
     const r: Remote = { ...base, branch: 'x', isInMain: false, pr: { number: 1, state: 'OPEN', isDraft: false, checks: 'fail' } }
-    expect(chips(r).find(c => c.text === 'CI✗')?.tone).toBe('bad')
+    expect(chips(r).find(c => c.text === '\u{f057}')?.tone).toBe('bad')
     expect(chips({ ...r, pr: { number: 1, state: 'CLOSED', isDraft: false, checks: 'none' } })[0]?.tone).toBe('bad')
   })
   test('a branch with no PR: said only when it already landed in main', () => {

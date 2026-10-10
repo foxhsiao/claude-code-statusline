@@ -68,10 +68,11 @@ export const chips = (r: Remote): Chip[] => {
     else if (state === 'CLOSED') out.push({ text: `#${n} 已關閉`, tone: 'bad' })
     else out.push({ text: `#${n}${isDraft ? ' 草稿' : ''}`, tone: 'warn' })
 
-    if (checks === 'pass') out.push({ text: 'CI✓', tone: 'ok' })
-    else if (checks === 'fail') out.push({ text: 'CI✗', tone: 'bad' })
-    // the Nerd Font circle: U+25CF is not in the font, so the terminal falls back and the dot sits low
-    else if (checks === 'pending') out.push({ text: 'CI\u{f111}', tone: 'warn' })
+    // one Nerd Font icon for the CI state: circle-check, circle-x, refresh. These line up with the capsule's
+    // other icons; the plain U+25CF dot used before drew below the text baseline in the terminal.
+    if (checks === 'pass') out.push({ text: '\u{f058}', tone: 'ok' })
+    else if (checks === 'fail') out.push({ text: '\u{f057}', tone: 'bad' })
+    else if (checks === 'pending') out.push({ text: '\u{f021}', tone: 'warn' })
   } else if (r.branch !== r.defaultBranch && r.isInMain) {
     out.push({ text: `已進 ${r.defaultBranch}`, tone: 'ok' })
   }
