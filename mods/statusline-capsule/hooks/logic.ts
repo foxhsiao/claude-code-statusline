@@ -87,3 +87,8 @@ export const chips = (r: Remote): Chip[] => {
 
   return out
 }
+
+// a branch that was never pushed: no upstream and nothing showing it left the machine. A PR or a landed
+// commit proves it was pushed, even when the upstream is not set (or is gone after the branch was deleted).
+export const isUnpushed = (r: Remote, hasUpstream: boolean): boolean =>
+  !hasUpstream && r.branch !== r.defaultBranch && r.pr === null && !r.isInMain

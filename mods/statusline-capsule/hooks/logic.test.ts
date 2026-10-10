@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Remote } from '../types'
-import { chips, compareDeploy, findSha, parseConfig, rollup } from './logic'
+import { chips, compareDeploy, findSha, isUnpushed, parseConfig, rollup } from './logic'
 
 const base: Remote = {
   branch: 'main',
@@ -113,5 +113,25 @@ describe('chips', () => {
     expect(chips({ ...base, deploy: { status: 'behind', deployed: 'a', main: 'b' } })).toEqual([
       { text: '\u{f135}', tone: 'bad' },
     ])
+  })
+})
+
+describe('isUnpushed', () => {
+  const fresh: Remote = { ...base, branch: 'feat', isInMain: false }
+  test('a new branch with no upstream, no PR and not in main', () => {
+    expect(isUnpushed(fresh, false)).toBe(true)
+  })
+  test('an upstream means it was pushed', () => {
+    expect(isUnpushed(fresh, true)).toBe(false)
+  })
+  test('a PR proves it was pushed even without an upstream', () => {
+    const pr = { number: 5, state: 'OPEN', isDraft: false, checks: 'none' } as const
+    expect(isUnpushed({ ...fresh, pr }, false)).toBe(false)
+  })
+  test('a branch already in main is not unpushed', () => {
+    expect(isUnpushed({ ...fresh, isInMain: true }, false)).toBe(false)
+  })
+  test('the default branch is never unpushed', () => {
+    expect(isUnpushed(base, false)).toBe(false)
   })
 })

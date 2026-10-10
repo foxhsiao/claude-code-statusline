@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Deploy, Info, Limit, Pr, Remote } from '../types'
-import { chips, compareDeploy, findSha, parseConfig, rollup } from './logic'
+import { chips, compareDeploy, findSha, isUnpushed, parseConfig, rollup } from './logic'
 import type { Tone } from './logic'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
@@ -272,7 +272,10 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     // the countdown moves with the clock, not with events: redraw once a minute
     tick?.cancel()
+    // the working tree changes inside long tool calls too (a ship script pushes and opens the PR in one), so
+    // the local git state is re-read on the same tick, not only when a tool call ends
     tick = $.clock.every(60_000, () => {
+      void refresh($).catch(() => {})
       $.ui.invalidate('ui.render')
       kick($, cache, false)
     })
@@ -328,7 +331,7 @@ export const register: Register = on => {
     if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
 
     // commits not pushed / not pulled, or ↑新 for a branch never pushed; empty when in sync
-    const unpushed = r !== null && !i.hasUpstream && i.branch !== r.defaultBranch
+    const unpushed = r !== null && isUnpushed(r, i.hasUpstream)
     const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}${unpushed ? '↑新 ' : ''}`
     // PR, CI and production, only when there is something to say
     const extra = r === null ? [] : chips(r)
