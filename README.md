@@ -177,6 +177,32 @@ chmod +x ~/.claude/statusline.sh
 - `CC_STYLE` 可選 `solid` / `outline` / `hollow`。
 - `CLAUDE_STATUSLINE_DEBUG=1` 會把 stdin JSON 存到 `/tmp/claude-statusline-debug.json`。
 
+## 開發：推送前檢查
+
+`scripts/check.sh` 一次跑三項檢查，`scripts/hooks/pre-push` 讓它在每次 `git push` 前自動執行，任何一項失敗就擋下 push：
+
+1. `claude plugin validate`：確認外掛載得起來。驗證不過時整個 mod 不會載入，statusline 會直接消失（0.5.0 就發生過）。
+2. `claude plugin test`：跑 mod 底下所有 `*.test.ts`。
+3. 型別檢查（`tsc`）：mod 本來就有幾個既有錯誤，記在 `scripts/tsc-baseline.txt`，只有**新增**的錯誤才會失敗。修掉其中一個後，把那一行從 baseline 刪掉。
+
+**啟用 hook**（每個 clone 各做一次，這是本機 git 設定，不會被 commit）：
+
+```sh
+git config core.hooksPath scripts/hooks
+```
+
+**指定 `tsc`**：型別檢查需要 TypeScript 編譯器。用環境變數 `TSC` 指到它，例如放進 `~/.zshrc`：
+
+```sh
+export TSC=/path/to/node_modules/typescript/bin/tsc
+```
+
+或在 repo 根目錄 `npm i -D typescript`，腳本會自動找到 `node_modules/.bin/tsc`。找不到 `tsc` 時，這一項會印出提示並略過，其他兩項照跑；設 `CHECK_STRICT=1` 則缺工具也算失敗。
+
+型別檢查還需要 `mods/statusline-capsule/.claude-plugin/types/`。這個資料夾由 Claude Code 產生、被 git 忽略，全新 clone 沒有它，用 `claude --plugin-dir mods/statusline-capsule` 開一次就會出現；沒有的話型別檢查同樣會略過。
+
+注意：檢查的是**工作區**，不是要推送的那個 commit，工作區有未 commit 的變動時會警告。確定要略過時用 `git push --no-verify`。也可以隨時手動跑 `scripts/check.sh`。
+
 ## 授權
 
 [MIT License](LICENSE)

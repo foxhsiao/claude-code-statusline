@@ -1,0 +1,6 @@
+# tsc errors the mod already had when the type check was added (line and column left out).
+# scripts/check.sh fails on any error not listed here; remove a line once its error is fixed.
+mods/statusline-capsule/hooks/register.tsx: error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+mods/statusline-capsule/hooks/register.tsx: error TS2322: Type 'unknown' is not assignable to type 'RenderChildren'.
+mods/statusline-capsule/hooks/register.tsx: error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+mods/statusline-capsule/hooks/register.tsx: error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
