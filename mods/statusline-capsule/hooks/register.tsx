@@ -57,6 +57,22 @@ const cells = (str: string) => {
   return w
 }
 
+// shorten to at most `max` display cells, ending in … when cut
+const truncate = (str: string, max: number) => {
+  if (cells(str) <= max) return str
+  let out = ''
+  let w = 0
+  for (const ch of str) {
+    const cw = cells(ch)
+    if (w + cw > max - 1) break
+    out += ch
+    w += cw
+  }
+  return `${out}…`
+}
+const MAX_DIR = 20
+const MAX_BRANCH = 24
+
 const ctxIcon = (n: number) => {
   const k = Math.min(8, Math.max(1, Math.floor((n * 8 + 99) / 100)))
   return CTX_ICONS[k - 1]
@@ -152,13 +168,16 @@ export const register: Register = on => {
     if (i.h5 !== null) uses.push([I_H5, i.h5])
     if (i.d7 !== null) uses.push([I_D7, i.d7])
 
+    const dir = truncate(i.dir, MAX_DIR)
+    const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
+
     // each capsule is its text plus the two caps and a trailing space
     const useText = ' ' + uses.map(([icon, n], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%`).join('') + ' '
     const w = {
       acct: i.acct === null ? 0 : cells(` ${I_USER} ${i.acct} `) + 3,
       model: cells(` ${I_LOGO} ${i.model} `) + 3,
-      dir: cells(` ${I_DIR} ${i.dir} `) + 3,
-      git: i.branch === null ? 0 : cells(` ${I_BRANCH} ${i.branch}  ${I_DIFF} +${i.add} -${i.del} `) + 3,
+      dir: cells(` ${I_DIR} ${dir} `) + 3,
+      git: branch === null ? 0 : cells(` ${I_BRANCH} ${branch}  ${I_DIFF} +${i.add} -${i.del} `) + 3,
       use: uses.length === 0 ? 0 : cells(useText) + 2,
     }
     // too narrow: drop the account, then the folder, then git; model and usage stay
@@ -174,11 +193,11 @@ export const register: Register = on => {
       <Box>
         {show.acct && i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
         <Cap bg={BG_LOGO} fg={WHITE}>{` ${I_LOGO} ${i.model} `}</Cap>
-        {show.dir && <Cap bg={BG_DIR} fg={WHITE}>{` ${I_DIR} ${i.dir} `}</Cap>}
-        {show.git && i.branch !== null && (
+        {show.dir && <Cap bg={BG_DIR} fg={WHITE}>{` ${I_DIR} ${dir} `}</Cap>}
+        {show.git && branch !== null && (
           <Box>
             <Text color={BG_GIT}>{CAP_L}</Text>
-            <Text backgroundColor={BG_GIT} color={DARK}>{` ${I_BRANCH} ${i.branch}  ${I_DIFF} `}</Text>
+            <Text backgroundColor={BG_GIT} color={DARK}>{` ${I_BRANCH} ${branch}  ${I_DIFF} `}</Text>
             <Text backgroundColor={BG_GIT} color={FG_ADD}>{`+${i.add} `}</Text>
             <Text backgroundColor={BG_GIT} color={FG_DEL}>{`-${i.del} `}</Text>
             <Text color={BG_GIT}>{CAP_R} </Text>
