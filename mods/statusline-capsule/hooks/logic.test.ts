@@ -72,7 +72,7 @@ describe('chips', () => {
       isInMain: false,
       pr: { number: 12, state: 'OPEN', isDraft: false, checks: 'pending' },
     }
-    expect(texts(r)).toEqual(['#12', 'CI●'])
+    expect(texts(r)).toEqual(['#12', 'CI\u{f111}'])
   })
   test('merged PR with green CI and a stale deploy', () => {
     const r: Remote = {

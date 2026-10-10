@@ -70,7 +70,8 @@ export const chips = (r: Remote): Chip[] => {
 
     if (checks === 'pass') out.push({ text: 'CI✓', tone: 'ok' })
     else if (checks === 'fail') out.push({ text: 'CI✗', tone: 'bad' })
-    else if (checks === 'pending') out.push({ text: 'CI●', tone: 'warn' })
+    // the Nerd Font circle: U+25CF is not in the font, so the terminal falls back and the dot sits low
+    else if (checks === 'pending') out.push({ text: 'CI\u{f111}', tone: 'warn' })
   } else if (r.branch !== r.defaultBranch && r.isInMain) {
     out.push({ text: `已進 ${r.defaultBranch}`, tone: 'ok' })
   }
