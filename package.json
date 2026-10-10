@@ -1,0 +1,20 @@
+{
+  "name": "claude-code-statusline",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/foxhsiao/claude-code-statusline.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/foxhsiao/claude-code-statusline/issues"
+  },
+  "homepage": "https://github.com/foxhsiao/claude-code-statusline#readme",
+  "private": true,
+  "description": "Dev tooling for claude-code-statusline (the mod itself is not an npm package).",
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

@@ -193,13 +193,13 @@ chmod +x ~/.claude/statusline.sh
 git config core.hooksPath scripts/hooks
 ```
 
-**指定 `tsc`**：型別檢查需要 TypeScript 編譯器。用環境變數 `TSC` 指到它，例如放進 `~/.zshrc`：
+**安裝 `tsc`**：型別檢查用 TypeScript 編譯器，已列在 `package.json` 的 `devDependencies`，在 repo 根目錄執行一次就好，不用再設 `TSC`：
 
 ```sh
-export TSC=/path/to/node_modules/typescript/bin/tsc
+npm install
 ```
 
-或在 repo 根目錄 `npm i -D typescript`，腳本會自動找到 `node_modules/.bin/tsc`。找不到 `tsc` 時，這一項會印出提示並略過，其他兩項照跑；設 `CHECK_STRICT=1` 則缺工具也算失敗。
+腳本會自動找 `node_modules/.bin/tsc`。想改用別的編譯器時，才用環境變數 `TSC=/path/to/tsc` 指定（優先於 `node_modules`；兩者都沒有時才會用 PATH 上的 `tsc`）。還沒執行過 `npm install` 時，型別檢查會印出提示並略過，其他兩項照跑；設 `CHECK_STRICT=1` 則缺工具也算失敗。`node_modules/` 已被 `.gitignore` 排除。
 
 型別檢查還需要 `mods/statusline-capsule/.claude-plugin/types/`。這個資料夾由 Claude Code 產生、被 git 忽略，全新 clone 沒有它，用 `claude --plugin-dir mods/statusline-capsule` 開一次就會出現；沒有的話型別檢查同樣會略過。
 

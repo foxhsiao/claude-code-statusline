@@ -2,7 +2,7 @@
 # Checks that must pass before the mod is pushed: plugin validation, unit tests, type check.
 # The pre-push hook (scripts/hooks/pre-push) runs this; run it by hand too.
 #
-#   TSC=/path/to/tsc   the TypeScript compiler for the type check (else `tsc` on PATH, else node_modules)
+#   TSC=/path/to/tsc   the TypeScript compiler for the type check (else node_modules/.bin/tsc, else `tsc` on PATH)
 #   CHECK_STRICT=1     a missing tool fails the check instead of skipping that step
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -53,8 +53,9 @@ fi
 # 3. type check: the mod has known errors (the baseline); only a new one fails
 tsc=${TSC:-}
 if [ -z "$tsc" ]; then
-  if command -v tsc >/dev/null 2>&1; then tsc=$(command -v tsc)
-  elif [ -x node_modules/.bin/tsc ]; then tsc=node_modules/.bin/tsc; fi
+  # the version the repo pins first, a global one only as a fallback
+  if [ -x node_modules/.bin/tsc ]; then tsc=node_modules/.bin/tsc
+  elif command -v tsc >/dev/null 2>&1; then tsc=$(command -v tsc); fi
 fi
 if [ -z "$tsc" ]; then
   skip "型別檢查：找不到 tsc（設 TSC=/path/to/tsc，或在 repo 根目錄 npm i -D typescript）"
