@@ -103,6 +103,8 @@ async function refresh($: EngineInterface) {
   let branch: string | null = null
   let add = 0
   let del = 0
+  let ahead = 0
+  let behind = 0
   try {
     const inRepo = await $.process.run(['git', 'rev-parse', '--is-inside-work-tree'], { cwd })
     if (inRepo.exitCode === 0) {
@@ -115,6 +117,11 @@ async function refresh($: EngineInterface) {
       if (!st.trim()) st = (await $.process.run(['git', 'diff', '--shortstat'], { cwd })).stdout
       add = Number(/(\d+) insertion/.exec(st)?.[1] ?? 0)
       del = Number(/(\d+) deletion/.exec(st)?.[1] ?? 0)
+      // exits non-zero without an upstream: then there is nothing to be ahead of or behind
+      const ab = await $.process.run(['git', 'rev-list', '--left-right', '--count', 'HEAD...@{u}'], { cwd })
+      const m = ab.exitCode === 0 ? /^(\d+)\s+(\d+)\s*$/.exec(ab.stdout.trim()) : null
+      ahead = Number(m?.[1] ?? 0)
+      behind = Number(m?.[2] ?? 0)
     }
   } catch {
     branch = null
@@ -135,6 +142,8 @@ async function refresh($: EngineInterface) {
     branch,
     add,
     del,
+    ahead,
+    behind,
     acct,
     ctx: usage.context.percent ?? null,
     h5: pick('five_hour'),
@@ -193,6 +202,8 @@ export const register: Register = on => {
     if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now)])
     if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
 
+    // commits not pushed / not pulled; empty when in sync or there is no upstream
+    const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}`
     const dir = truncate(i.dir, MAX_DIR)
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
 
@@ -202,7 +213,7 @@ export const register: Register = on => {
       acct: i.acct === null ? 0 : cells(` ${I_USER} ${i.acct} `) + 3,
       model: cells(` ${I_LOGO} ${i.model} `) + 3,
       dir: cells(` ${I_DIR} ${dir} `) + 3,
-      git: branch === null ? 0 : cells(` ${I_BRANCH} ${branch}  ${I_DIFF} +${i.add} -${i.del} `) + 3,
+      git: branch === null ? 0 : cells(` ${I_BRANCH} ${branch}  ${I_DIFF} +${i.add} -${i.del} ${sync}`) + 3,
       use: uses.length === 0 ? 0 : cells(useText) + 2,
     }
     // too narrow: drop the account, then the folder, then git; model and usage stay
@@ -225,6 +236,7 @@ export const register: Register = on => {
             <Text backgroundColor={BG_GIT} color={DARK}>{` ${I_BRANCH} ${branch}  ${I_DIFF} `}</Text>
             <Text backgroundColor={BG_GIT} color={FG_ADD}>{`+${i.add} `}</Text>
             <Text backgroundColor={BG_GIT} color={FG_DEL}>{`-${i.del} `}</Text>
+            {sync !== '' && <Text backgroundColor={BG_GIT} color={DARK}>{sync}</Text>}
             <Text color={BG_GIT}>{CAP_R} </Text>
           </Box>
         )}

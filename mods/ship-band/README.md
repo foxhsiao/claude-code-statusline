@@ -1,13 +1,13 @@
 # ship-band
 
-A band above the prompt: `發佈 │ <branch> │ PR #N 未合併 │ CI ✓ │ 部署 ✓ 最新 │ 工作區 ✓ 乾淨 │ ↑2 未推送`.
+A band above the prompt: `發佈 │ PR #N 未合併 │ CI ✓ │ 部署 ✓ 最新 │ 未推送`.
 
 | Item | Where it comes from |
 |---|---|
 | PR, merged or not | `gh pr view` for the current branch (a branch with no PR shows `無 PR`, or `✓ 已進 main` if it already landed) |
 | CI | the PR's `statusCheckRollup`: `✓` pass, `✗` fail, `●` running, `—` none |
 | Production runs main's latest | optional, see below |
-| Working tree clean | `git status --porcelain`; unpushed and behind counts from the upstream |
+| Never pushed | `git rev-parse @{u}` fails: the branch has no upstream and is not the default branch, so `未推送` shows (ahead/behind counts and the working tree state are in the statusline-capsule git capsule) |
 
 The network reads (`git fetch`, `gh`, the deploy URL) run at most once a minute, after a turn ends, and after a `gh pr`, `git push`, `wrangler` or `deploy` command. They never block a tool call.
 

@@ -16,9 +16,6 @@ export type Deploy = {
 export type Ship = {
   branch: string
   defaultBranch: string
-  dirty: number
-  ahead: number | null
-  behind: number | null
   hasUpstream: boolean
   isInMain: boolean
   pr: Pr | null

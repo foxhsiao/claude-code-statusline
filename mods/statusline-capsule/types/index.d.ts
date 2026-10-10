@@ -6,6 +6,8 @@ export type Info = {
   branch: string | null
   add: number
   del: number
+  ahead: number
+  behind: number
   acct: string | null
   ctx: number | null
   h5: Limit | null

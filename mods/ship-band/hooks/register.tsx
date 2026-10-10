@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Deploy, Pr, Ship } from '../types'
-import { compareDeploy, countLines, findSha, parseAheadBehind, parseConfig, rollup, segments } from './logic'
+import { compareDeploy, findSha, parseConfig, rollup, segments } from './logic'
 import type { Tone } from './logic'
 
 const ship = atom({ plugin: 'ship-band', key: 'ship' } as const, null)
@@ -96,8 +96,8 @@ async function refresh($: EngineInterface, cache: Cache, isForced: boolean) {
 
     const named = (await run($, cwd, ['git', 'branch', '--show-current']))?.trim()
     const branch = named || (await run($, cwd, ['git', 'rev-parse', '--short', 'HEAD']))?.trim() || '(new)'
-    const dirty = countLines((await run($, cwd, ['git', 'status', '--porcelain'])) ?? '')
-    const ab = parseAheadBehind((await run($, cwd, ['git', 'rev-list', '--left-right', '--count', 'HEAD...@{u}'])) ?? '')
+    // fails without an upstream; the capsule shows ahead/behind, this band only needs to know it exists
+    const hasUpstream = (await run($, cwd, ['git', 'rev-parse', '--abbrev-ref', '@{u}'])) !== null
 
     const key = `${root}|${branch}`
     const now = await $.clock.now()
@@ -111,10 +111,7 @@ async function refresh($: EngineInterface, cache: Cache, isForced: boolean) {
     const next: Ship = {
       branch,
       defaultBranch: r.defaultBranch,
-      dirty,
-      ahead: ab ? ab.ahead : null,
-      behind: ab ? ab.behind : null,
-      hasUpstream: ab !== null,
+      hasUpstream,
       isInMain: r.isInMain,
       pr: r.pr,
       deploy: r.deploy,
@@ -168,10 +165,14 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
     const parts = segments(s)
+    // nothing to say (clean default branch, in sync): leave the capsule band alone
+    if (parts.length === 0) return below
 
     const mine = (
       <Box flexWrap="wrap">
+        <Text color="#4285f4">{''}</Text>
         <Text backgroundColor="#4285f4" color="#ffffff">{' 發佈 '}</Text>
+        <Text color="#4285f4">{''}</Text>
         <Text>{' '}</Text>
         {parts.map((p, i) => (
           <Box key={`${i}`}>

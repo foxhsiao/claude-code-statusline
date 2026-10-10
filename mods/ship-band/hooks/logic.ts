@@ -24,14 +24,6 @@ export const rollup = (items: unknown): Checks => {
   return isPending ? 'pending' : 'pass'
 }
 
-export const countLines = (out: string): number => out.split('\n').filter(l => l.trim() !== '').length
-
-// `git rev-list --left-right --count HEAD...@{u}` prints "<ahead>\t<behind>"
-export const parseAheadBehind = (out: string): { ahead: number; behind: number } | null => {
-  const m = /^(\d+)\s+(\d+)\s*$/.exec(out.trim())
-  return m ? { ahead: Number(m[1]), behind: Number(m[2]) } : null
-}
-
 export const parseConfig = (text: string): DeployConfig | null => {
   try {
     const url = (JSON.parse(text) as { deploy?: { url?: unknown; header?: unknown; pattern?: unknown } }).deploy
@@ -72,8 +64,6 @@ export const segments = (s: Ship): Seg[] => {
   const out: Seg[] = []
   const onDefault = s.branch === s.defaultBranch
 
-  out.push({ text: s.branch, tone: 'dim' })
-
   if (s.pr) {
     const tag = s.pr.isDraft ? ' 草稿' : ''
     if (s.pr.state === 'MERGED') out.push({ text: `PR #${s.pr.number} ✓ 已合併`, tone: 'ok' })
@@ -101,15 +91,8 @@ export const segments = (s: Ship): Seg[] => {
     else out.push({ text: '部署 ? 認不出版本', tone: 'warn' })
   }
 
-  if (s.dirty > 0) out.push({ text: `工作區 ✗ ${s.dirty} 檔未提交`, tone: 'warn' })
-  else out.push({ text: '工作區 ✓ 乾淨', tone: 'ok' })
-
-  if (!s.hasUpstream) {
-    if (!onDefault) out.push({ text: '未推送', tone: 'warn' })
-  } else {
-    if ((s.ahead ?? 0) > 0) out.push({ text: `↑${s.ahead} 未推送`, tone: 'warn' })
-    if ((s.behind ?? 0) > 0) out.push({ text: `↓${s.behind} 待拉取`, tone: 'warn' })
-  }
+  // ahead/behind counts live in the statusline-capsule git capsule; only a branch never pushed is said here
+  if (!s.hasUpstream && !onDefault) out.push({ text: '未推送', tone: 'warn' })
 
   return out
 }
