@@ -10,6 +10,9 @@ const remote = atom({ plugin: 'statusline-capsule', key: 'remote' } as const, nu
 
 // the network parts (fetch, gh, the deploy URL) are re-read at most this often
 const REMOTE_TTL_MS = 60_000
+// the minute tick fires on the same period and `at` is stamped before the read, so a strict `>` skipped about
+// every other tick (a real refresh every 60-120 s); count a read as due a little early
+const REMOTE_SLACK_MS = 5_000
 
 // Nerd Font glyphs (code points as in statusline.sh)
 const CAP_L = ''
@@ -239,7 +242,7 @@ async function refreshRemote($: EngineInterface, cache: Cache, isForced: boolean
 
     const key = `${root}|${branch}`
     const now = await $.clock.now()
-    if (isForced || cache.key !== key || cache.remote === null || now - cache.at > REMOTE_TTL_MS) {
+    if (isForced || cache.key !== key || cache.remote === null || now - cache.at >= REMOTE_TTL_MS - REMOTE_SLACK_MS) {
       cache.remote = await readRemote($, cwd, root, branch)
       cache.key = key
       cache.at = now
