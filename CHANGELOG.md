@@ -1,12 +1,23 @@
 # Changelog
 
-statusline-capsule 與 ship-band 兩個 mod 的版本紀錄。
+statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
+
+## statusline-capsule 0.5.0
+
+ship-band 併入 statusline-capsule，成為單一 mod。
+
+- 黃色 git 膠囊顯示 PR（`#12`、`#12 已合併`、`#12 草稿`）、CI（`CI✓`、`CI✗`、`CI●`）與正式站部署狀態（`✓部署`、`部署落後`、`?部署`）；沒有 PR、沒設定部署時不顯示，膠囊維持原本長度。
+- 沒有 upstream 的新分支在黃色膠囊顯示 `↑新`。
+- 窄終端機的隱藏順序變成：帳號、資料夾、PR／CI／部署，最後才整個 git 膠囊。
+- `.ship-band.json`（部署比對設定）沿用。PR 與 CI 需要已登入的 `gh`；沒有 `gh` 時只是不顯示這兩項。
+
+**從 ship-band 遷移**：ship-band 已從 marketplace 移除，不再維護。已安裝的人請執行 `claude plugin uninstall ship-band` 與 `claude plugin update statusline-capsule`。獨立的 `發佈` 那一行不再出現，原本的分支名與「工作區 ✓ 乾淨」也不再另外顯示（分支在 git 膠囊裡，未提交變更看 `+n -n`）。
 
 ## statusline-capsule 0.4.0
 
 - 黃色 git 膠囊在增刪行數後面顯示 `↑n`（未推送）、`↓n`（待拉取）；同步或沒有 upstream 時不顯示。這段文字也計入寬度判斷。
 
-## ship-band 0.2.0
+## ship-band 0.2.0（最後一版）
 
 - `發佈` 標籤改成與膠囊一致的圓角樣式。
 - 拿掉分支、工作區狀態與 `↑n 未推送`／`↓n 待拉取`，這些改由 statusline-capsule 的 git 膠囊顯示；沒有 upstream 的分支仍顯示 `未推送`。

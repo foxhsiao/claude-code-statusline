@@ -1,7 +1,7 @@
-import type { Checks, Deploy, Ship } from '../types'
+import type { Checks, Deploy, Remote } from '../types'
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'dim'
-export type Seg = { text: string; tone: Tone }
+export type Chip = { text: string; tone: Tone }
 
 export type DeployConfig = { url: string; header?: string; pattern?: string }
 
@@ -58,41 +58,28 @@ export const compareDeploy = (deployed: string | null, main: string | null): Dep
   return a.startsWith(b) || b.startsWith(a) ? 'current' : 'behind'
 }
 
-const short = (s: string | null) => (s ? s.slice(0, 7) : '?')
+// what the git capsule says about the PR, CI and production; nothing when there is nothing to say
+export const chips = (r: Remote): Chip[] => {
+  const out: Chip[] = []
 
-export const segments = (s: Ship): Seg[] => {
-  const out: Seg[] = []
-  const onDefault = s.branch === s.defaultBranch
+  if (r.pr) {
+    const { number: n, state, isDraft, checks } = r.pr
+    if (state === 'MERGED') out.push({ text: `#${n} 已合併`, tone: 'ok' })
+    else if (state === 'CLOSED') out.push({ text: `#${n} 已關閉`, tone: 'bad' })
+    else out.push({ text: `#${n}${isDraft ? ' 草稿' : ''}`, tone: 'warn' })
 
-  if (s.pr) {
-    const tag = s.pr.isDraft ? ' 草稿' : ''
-    if (s.pr.state === 'MERGED') out.push({ text: `PR #${s.pr.number} ✓ 已合併`, tone: 'ok' })
-    else if (s.pr.state === 'CLOSED') out.push({ text: `PR #${s.pr.number} 已關閉`, tone: 'bad' })
-    else out.push({ text: `PR #${s.pr.number}${tag} 未合併`, tone: 'warn' })
-
-    if (s.pr.checks === 'pass') out.push({ text: 'CI ✓', tone: 'ok' })
-    else if (s.pr.checks === 'fail') out.push({ text: 'CI ✗ 失敗', tone: 'bad' })
-    else if (s.pr.checks === 'pending') out.push({ text: 'CI ● 執行中', tone: 'warn' })
-    else out.push({ text: 'CI —', tone: 'dim' })
-  } else if (!onDefault) {
-    out.push(
-      s.isInMain
-        ? { text: '✓ 已進 main', tone: 'ok' }
-        : { text: '無 PR', tone: 'dim' },
-    )
+    if (checks === 'pass') out.push({ text: 'CI✓', tone: 'ok' })
+    else if (checks === 'fail') out.push({ text: 'CI✗', tone: 'bad' })
+    else if (checks === 'pending') out.push({ text: 'CI●', tone: 'warn' })
+  } else if (r.branch !== r.defaultBranch && r.isInMain) {
+    out.push({ text: `已進 ${r.defaultBranch}`, tone: 'ok' })
   }
 
-  if (s.deploy) {
-    const d = s.deploy
-    if (d.status === 'current') out.push({ text: '部署 ✓ 最新', tone: 'ok' })
-    else if (d.status === 'behind') {
-      out.push({ text: `部署 ✗ 落後 ${short(d.deployed)} → ${short(d.main)}`, tone: 'bad' })
-    } else if (d.status === 'error') out.push({ text: '部署 ? 讀不到', tone: 'warn' })
-    else out.push({ text: '部署 ? 認不出版本', tone: 'warn' })
+  if (r.deploy) {
+    if (r.deploy.status === 'current') out.push({ text: '✓部署', tone: 'ok' })
+    else if (r.deploy.status === 'behind') out.push({ text: '部署落後', tone: 'bad' })
+    else out.push({ text: '?部署', tone: 'warn' })
   }
-
-  // ahead/behind counts live in the statusline-capsule git capsule; only a branch never pushed is said here
-  if (!s.hasUpstream && !onDefault) out.push({ text: '未推送', tone: 'warn' })
 
   return out
 }

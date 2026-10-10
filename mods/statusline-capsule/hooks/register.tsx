@@ -1,9 +1,15 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Info, Limit } from '../types'
+import type { Deploy, Info, Limit, Pr, Remote } from '../types'
+import { chips, compareDeploy, findSha, parseConfig, rollup } from './logic'
+import type { Tone } from './logic'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
+const remote = atom({ plugin: 'statusline-capsule', key: 'remote' } as const, null)
+
+// the network parts (fetch, gh, the deploy URL) are re-read at most this often
+const REMOTE_TTL_MS = 60_000
 
 // Nerd Font glyphs (code points as in statusline.sh)
 const CAP_L = ''
@@ -30,6 +36,8 @@ const DIM_USE = '#bdc1c6'
 const DARK = '#202124'
 const FG_ADD = '#137333'
 const FG_DEL = '#a50e0e'
+// status tones that stay readable on the yellow git capsule
+const TONE_GIT: Record<Tone, string> = { ok: FG_ADD, warn: '#8a4b00', bad: FG_DEL, dim: '#5f6368' }
 
 const levelColor = (n: number) =>
   n >= 90 ? '#f28b82' : n >= 75 ? '#fcad70' : n >= 60 ? '#fdd663' : n >= 40 ? '#81c995' : WHITE
@@ -105,6 +113,7 @@ async function refresh($: EngineInterface) {
   let del = 0
   let ahead = 0
   let behind = 0
+  let hasUpstream = false
   try {
     const inRepo = await $.process.run(['git', 'rev-parse', '--is-inside-work-tree'], { cwd })
     if (inRepo.exitCode === 0) {
@@ -119,7 +128,8 @@ async function refresh($: EngineInterface) {
       del = Number(/(\d+) deletion/.exec(st)?.[1] ?? 0)
       // exits non-zero without an upstream: then there is nothing to be ahead of or behind
       const ab = await $.process.run(['git', 'rev-list', '--left-right', '--count', 'HEAD...@{u}'], { cwd })
-      const m = ab.exitCode === 0 ? /^(\d+)\s+(\d+)\s*$/.exec(ab.stdout.trim()) : null
+      hasUpstream = ab.exitCode === 0
+      const m = hasUpstream ? /^(\d+)\s+(\d+)\s*$/.exec(ab.stdout.trim()) : null
       ahead = Number(m?.[1] ?? 0)
       behind = Number(m?.[2] ?? 0)
     }
@@ -144,6 +154,7 @@ async function refresh($: EngineInterface) {
     del,
     ahead,
     behind,
+    hasUpstream,
     acct,
     ctx: usage.context.percent ?? null,
     h5: pick('five_hour'),
@@ -152,13 +163,116 @@ async function refresh($: EngineInterface) {
   await update($, info, () => next)
 }
 
+type Cache = { key: string; at: number; remote: Remote | null; isBusy: boolean }
+
+async function run($: EngineInterface, cwd: string, argv: string[], timeoutMs = 15_000) {
+  try {
+    const r = await $.process.run(argv, { cwd, timeoutMs })
+    return r.exitCode === 0 ? r.stdout : null
+  } catch {
+    return null
+  }
+}
+
+async function readRemote($: EngineInterface, cwd: string, root: string, branch: string): Promise<Remote> {
+  const head = (await run($, cwd, ['git', 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD']))?.trim()
+  const defaultBranch = head ? head.replace(/^origin\//, '') : 'main'
+  const onDefault = branch === defaultBranch
+
+  await run($, cwd, ['git', 'fetch', '--quiet', 'origin', defaultBranch], 20_000)
+  const mainSha = (await run($, cwd, ['git', 'rev-parse', `origin/${defaultBranch}`]))?.trim() || null
+  const isInMain =
+    onDefault || (await run($, cwd, ['git', 'merge-base', '--is-ancestor', 'HEAD', `origin/${defaultBranch}`])) !== null
+
+  let pr: Pr | null = null
+  if (!onDefault) {
+    const out = await run($, cwd, ['gh', 'pr', 'view', '--json', 'number,state,isDraft,statusCheckRollup'], 20_000)
+    if (out) {
+      try {
+        const j = JSON.parse(out) as { number: number; state: Pr['state']; isDraft: boolean; statusCheckRollup: unknown }
+        pr = { number: j.number, state: j.state, isDraft: j.isDraft, checks: rollup(j.statusCheckRollup) }
+      } catch {
+        pr = null
+      }
+    }
+  }
+
+  let deploy: Deploy | null = null
+  let text = ''
+  try {
+    text = await $.fs.read(`${root}/.ship-band.json`)
+  } catch {
+    text = ''
+  }
+  const cfg = parseConfig(text)
+  if (cfg) {
+    try {
+      const res = await $.http.fetch(cfg.url)
+      if (!res.ok) {
+        deploy = { status: 'error', deployed: null, main: mainSha }
+      } else {
+        const source = cfg.header ? (res.headers[cfg.header] ?? '') : res.text
+        const deployed = findSha(source, cfg.pattern)
+        deploy = { status: compareDeploy(deployed, mainSha), deployed, main: mainSha }
+      }
+    } catch {
+      deploy = { status: 'error', deployed: null, main: mainSha }
+    }
+  }
+
+  return { branch, defaultBranch, isInMain, pr, deploy }
+}
+
+async function refreshRemote($: EngineInterface, cache: Cache, isForced: boolean) {
+  if (cache.isBusy) return
+  cache.isBusy = true
+  try {
+    const cwd = await $.session.cwd()
+    const root = (await run($, cwd, ['git', 'rev-parse', '--show-toplevel']))?.trim()
+    if (!root) {
+      await update($, remote, () => null)
+      return
+    }
+
+    const named = (await run($, cwd, ['git', 'branch', '--show-current']))?.trim()
+    const branch = named || (await run($, cwd, ['git', 'rev-parse', '--short', 'HEAD']))?.trim() || '(new)'
+
+    const key = `${root}|${branch}`
+    const now = await $.clock.now()
+    if (isForced || cache.key !== key || cache.remote === null || now - cache.at > REMOTE_TTL_MS) {
+      cache.remote = await readRemote($, cwd, root, branch)
+      cache.key = key
+      cache.at = now
+    }
+
+    const next = cache.remote
+    await update($, remote, () => next)
+  } finally {
+    cache.isBusy = false
+  }
+}
+
+// commands that change what the PR / CI / deploy chips show beyond the working tree
+const SHIPS = /\b(gh\s+pr|git\s+(push|pull|fetch|merge|switch|checkout)|wrangler|deploy|publish)\b/
+
 export const register: Register = on => {
   let tick: { cancel: () => void } | null = null
+  const cache: Cache = { key: '', at: 0, remote: null, isBusy: false }
+  // off the hook's critical path: the network reads must not hold anything back
+  const kick = ($: EngineInterface, isForced: boolean) => {
+    $.clock.after(0, () => {
+      void refreshRemote($, cache, isForced).catch(() => {})
+    })
+  }
 
   on('session.start', async ($, e, next) => {
     // the countdown moves with the clock, not with events: redraw once a minute
     tick?.cancel()
-    tick = $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
+    tick = $.clock.every(60_000, () => {
+      $.ui.invalidate('ui.render')
+      kick($, false)
+    })
+    kick($, true)
     await refresh($).catch(() => {})
     return next(e)
   })
@@ -169,19 +283,26 @@ export const register: Register = on => {
   // tool calls change the working tree: refresh git after each one that writes
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
-    if (ran.isReadOnly !== true) await refresh($).catch(() => {})
+    if (ran.isReadOnly !== true) {
+      await refresh($).catch(() => {})
+      kick($, e.tool === 'Bash' && SHIPS.test(String(e.command)))
+    }
     return ran
   })
   on('turn.complete', async ($, e, next) => {
+    kick($, true)
     await refresh($).catch(() => {})
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    // another mod's band (ship-band) may sit beneath this one: draw above it instead of replacing it
+    // another mod's band may sit beneath this one: draw above it instead of replacing it
     const below = await next(e)
     const i = await read($, info)
     if (i === null || e.props.hasSurvey) return below
+    // the network parts belong to a branch: ignore them until they catch up after a switch
+    const loaded = await read($, remote)
+    const r = loaded !== null && i.branch !== null && loaded.branch === i.branch ? loaded : null
 
     const { Box, Text } = $.ui.resolve(e)
     const now = await $.clock.now()
@@ -202,8 +323,12 @@ export const register: Register = on => {
     if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now)])
     if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
 
-    // commits not pushed / not pulled; empty when in sync or there is no upstream
-    const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}`
+    // commits not pushed / not pulled, or ↑新 for a branch never pushed; empty when in sync
+    const unpushed = r !== null && !i.hasUpstream && i.branch !== r.defaultBranch
+    const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}${unpushed ? '↑新 ' : ''}`
+    // PR, CI and production, only when there is something to say
+    const extra = r === null ? [] : chips(r)
+    const extraText = extra.length > 0 ? `│ ${extra.map(c => `${c.text} `).join('')}` : ''
     const dir = truncate(i.dir, MAX_DIR)
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
 
@@ -214,13 +339,18 @@ export const register: Register = on => {
       model: cells(` ${I_LOGO} ${i.model} `) + 3,
       dir: cells(` ${I_DIR} ${dir} `) + 3,
       git: branch === null ? 0 : cells(` ${I_BRANCH} ${branch}  ${I_DIFF} +${i.add} -${i.del} ${sync}`) + 3,
+      extra: cells(extraText),
       use: uses.length === 0 ? 0 : cells(useText) + 2,
     }
-    // too narrow: drop the account, then the folder, then git; model and usage stay
-    const show = { acct: true, dir: true, git: true }
+    // too narrow: drop the account, the folder, the PR/CI/deploy chips, then git; model and usage stay
+    const show = { acct: true, dir: true, extra: true, git: true }
     const total = () =>
-      w.model + w.use + (show.acct ? w.acct : 0) + (show.dir ? w.dir : 0) + (show.git ? w.git : 0)
-    for (const k of ['acct', 'dir', 'git'] as const) {
+      w.model +
+      w.use +
+      (show.acct ? w.acct : 0) +
+      (show.dir ? w.dir : 0) +
+      (show.git ? w.git + (show.extra ? w.extra : 0) : 0)
+    for (const k of ['acct', 'dir', 'extra', 'git'] as const) {
       if (total() <= e.props.bodyColumns) break
       show[k] = false
     }
@@ -237,6 +367,14 @@ export const register: Register = on => {
             <Text backgroundColor={BG_GIT} color={FG_ADD}>{`+${i.add} `}</Text>
             <Text backgroundColor={BG_GIT} color={FG_DEL}>{`-${i.del} `}</Text>
             {sync !== '' && <Text backgroundColor={BG_GIT} color={DARK}>{sync}</Text>}
+            {show.extra && extra.length > 0 && (
+              <Box>
+                <Text backgroundColor={BG_GIT} color={TONE_GIT.dim}>{'│ '}</Text>
+                {extra.map(c => (
+                  <Text key={c.text} backgroundColor={BG_GIT} color={TONE_GIT[c.tone]}>{`${c.text} `}</Text>
+                ))}
+              </Box>
+            )}
             <Text color={BG_GIT}>{CAP_R} </Text>
           </Box>
         )}

@@ -1,18 +1,17 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import type { Ship } from '../types'
-import { compareDeploy, findSha, parseConfig, rollup, segments } from './logic'
+import type { Remote } from '../types'
+import { chips, compareDeploy, findSha, parseConfig, rollup } from './logic'
 
-const base: Ship = {
+const base: Remote = {
   branch: 'main',
   defaultBranch: 'main',
-  hasUpstream: true,
   isInMain: true,
   pr: null,
   deploy: null,
 }
 
-const texts = (s: Ship) => segments(s).map(p => p.text)
+const texts = (r: Remote) => chips(r).map(c => c.text)
 
 describe('rollup', () => {
   test('empty or missing is none', () => {
@@ -62,47 +61,50 @@ describe('deploy', () => {
   })
 })
 
-describe('segments', () => {
-  test('clean main in sync shows nothing', () => {
+describe('chips', () => {
+  test('clean default branch shows nothing', () => {
     expect(texts(base)).toEqual([])
   })
   test('open PR with CI running', () => {
-    const s: Ship = {
+    const r: Remote = {
       ...base,
       branch: 'fix/x',
       isInMain: false,
       pr: { number: 12, state: 'OPEN', isDraft: false, checks: 'pending' },
     }
-    expect(texts(s)).toEqual(['PR #12 未合併', 'CI ● 執行中'])
+    expect(texts(r)).toEqual(['#12', 'CI●'])
   })
   test('merged PR with green CI and a stale deploy', () => {
-    const s: Ship = {
+    const r: Remote = {
       ...base,
       branch: 'fix/x',
-      isInMain: true,
       pr: { number: 7, state: 'MERGED', isDraft: false, checks: 'pass' },
       deploy: { status: 'behind', deployed: 'aaaaaaa1111', main: 'bbbbbbb2222' },
     }
-    expect(texts(s)).toEqual(['PR #7 ✓ 已合併', 'CI ✓', '部署 ✗ 落後 aaaaaaa → bbbbbbb'])
+    expect(texts(r)).toEqual(['#7 已合併', 'CI✓', '部署落後'])
   })
-  test('a branch with no PR that already landed in main', () => {
-    expect(texts({ ...base, branch: 'old', isInMain: true })).toContain('✓ 已進 main')
-    expect(texts({ ...base, branch: 'wip', isInMain: false })).toContain('無 PR')
+  test('failed CI is bad, a closed PR is bad', () => {
+    const r: Remote = { ...base, branch: 'x', isInMain: false, pr: { number: 1, state: 'OPEN', isDraft: false, checks: 'fail' } }
+    expect(chips(r).find(c => c.text === 'CI✗')?.tone).toBe('bad')
+    expect(chips({ ...r, pr: { number: 1, state: 'CLOSED', isDraft: false, checks: 'none' } })[0]?.tone).toBe('bad')
   })
-  test('draft PR and no upstream', () => {
-    const s: Ship = {
+  test('a branch with no PR: said only when it already landed in main', () => {
+    expect(texts({ ...base, branch: 'old', isInMain: true })).toEqual(['已進 main'])
+    expect(texts({ ...base, branch: 'wip', isInMain: false })).toEqual([])
+  })
+  test('draft PR with no CI configured', () => {
+    const r: Remote = {
       ...base,
       branch: 'feat',
-      hasUpstream: false,
       isInMain: false,
       pr: { number: 3, state: 'OPEN', isDraft: true, checks: 'none' },
     }
-    expect(texts(s)).toEqual(['PR #3 草稿 未合併', 'CI —', '未推送'])
+    expect(texts(r)).toEqual(['#3 草稿'])
   })
   test('deploy tones: current is ok, unreadable is a warning', () => {
-    const ok = segments({ ...base, deploy: { status: 'current', deployed: 'a', main: 'a' } })
-    expect(ok.find(p => p.text.startsWith('部署'))?.tone).toBe('ok')
-    const bad = segments({ ...base, deploy: { status: 'error', deployed: null, main: 'a' } })
-    expect(bad.find(p => p.text.startsWith('部署'))?.tone).toBe('warn')
+    const ok = chips({ ...base, deploy: { status: 'current', deployed: 'a', main: 'a' } })
+    expect(ok.find(c => c.text.includes('部署'))?.tone).toBe('ok')
+    const bad = chips({ ...base, deploy: { status: 'error', deployed: null, main: 'a' } })
+    expect(bad.find(c => c.text.includes('部署'))?.tone).toBe('warn')
   })
 })

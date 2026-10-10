@@ -2,7 +2,7 @@
 
 Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
-顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數 ｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
+顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數（有 PR、CI、部署時一併顯示）｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
 
 有兩種版本：
 
@@ -17,6 +17,7 @@ Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
 - [Nerd Font](https://www.nerdfonts.com/)（兩種版本都需要）
 - `git`
+- [`gh`](https://cli.github.com/)（選用，已登入；沒有的話 git 膠囊不顯示 PR 與 CI）
 - shell script 版另外需要 `jq`、`bash`
 
 ## 安裝 Nerd Font
@@ -75,6 +76,47 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
+### git 膠囊：↑↓、PR、CI、部署
+
+黃色 git 膠囊在分支與增刪行數後面，視情況多顯示這些內容：
+
+| 顯示 | 意思 |
+| --- | --- |
+| `↑2`、`↓1` | 領先、落後 upstream 的 commit 數 |
+| `↑新` | 這個分支還沒推送過（沒有 upstream，且不是預設分支） |
+| `#12` | 開著的 PR；草稿為 `#12 草稿`；`#12 已合併`（綠）、`#12 已關閉`（紅） |
+| `CI✓`、`CI✗`、`CI●` | PR 的檢查全部通過、有失敗、執行中；沒有 CI 時不顯示 |
+| `已進 main` | 沒有 PR，但這個分支的 commit 已經在預設分支裡 |
+| `✓部署`、`部署落後`、`?部署` | 正式站版本與預設分支相同、落後、讀不到或認不出 |
+
+「有東西才顯示」：沒有 PR、沒設定部署時，只剩分支、增刪行數與 ↑↓；PR、CI、部署前面有一條 `│` 分隔。
+
+PR 與 CI 來自 `gh pr view`，需要已登入的 [`gh`](https://cli.github.com/)；沒有 `gh` 時這兩項不顯示，其餘照常。
+
+**比對正式站版本（選用）**：在 repo 根目錄放 `.ship-band.json`：
+
+```json
+{ "deploy": { "url": "https://example.com/version.json" } }
+```
+
+膠囊會抓這個網址，從內容取第一個像 commit 的字串（7 到 40 個十六進位字元），與 `origin/<預設分支>` 比對，所以正式站要公開自己的 commit。可選欄位：`"header": "x-commit"` 改讀該回應標頭，`"pattern": "sha=([0-9a-f]+)"` 自己指定要取的字串（有群組時取第一組）。沒有這個檔案就不顯示部署。
+
+這些要上網的讀取（`git fetch`、`gh`、部署網址）最多每分鐘一次，另外在回合結束，以及執行 `gh pr`、`git push`、`wrangler`、`deploy` 等指令後觸發，不會卡住工具呼叫。不在 git repo 內時整段不顯示。
+
+#### 從 ship-band 遷移
+
+原本獨立的 `ship-band` 外掛已併入 statusline-capsule 並從 marketplace 移除。已安裝的人：
+
+```
+claude plugin uninstall ship-band
+claude plugin update statusline-capsule
+```
+
+- `.ship-band.json` 沿用，不用改。
+- 提示框上方不再有獨立的 `發佈` 那一行；PR、CI、部署改顯示在黃色 git 膠囊裡。
+- 原本的分支名與「工作區 ✓ 乾淨」不再另外顯示：分支在 git 膠囊，有未提交變更時看 `+n -n`。
+- 兩個都留著的話，舊的 `發佈` 行還會出現，內容與膠囊重複。
+
 ### 重設倒數
 
 5h、7d 的百分比後面接距離視窗重設的剩餘時間，顯示成灰色小字：
@@ -95,7 +137,8 @@ fc-cache -fv
 
 1. 帳號
 2. 資料夾
-3. git 分支與增刪行數
+3. git 膠囊裡的 PR、CI、部署
+4. 整個 git 膠囊（分支與增刪行數）
 
 模型與用量永遠保留。隱藏是整個膠囊一起拿掉，不會把單一膠囊截短。
 
@@ -113,18 +156,6 @@ fc-cache -fv
 截斷發生在寬度判斷之前，所以隱藏順序用的是截斷後的實際寬度。常數在 `mods/statusline-capsule/hooks/register.tsx`。
 
 版本異動見 [CHANGELOG.md](CHANGELOG.md)。
-
-## 安裝 ship-band mod
-
-`mods/ship-band/` 在提示框上方多一行發佈狀態：目前分支的 PR、CI、是否已合併、工作區是否乾淨，以及（選用）正式站是不是 main 的最新版。需要 `git` 和 [`gh`](https://cli.github.com/)（已登入）。
-
-```
-/plugin install ship-band --marketplace foxhsiao/claude-code-statusline
-```
-
-正式站版本比對要在 repo 根目錄放 `.ship-band.json`，格式見 [`mods/ship-band/README.md`](mods/ship-band/README.md)。
-
-和 statusline-capsule 同時安裝時，兩者共用提示框上方這個位置，但兩行都看得到：statusline-capsule 會把膠囊疊在排在它下面的 mod 上方，ship-band 的 `發佈` 行也同樣處理，所以不論先後順序，都是膠囊與 `發佈` 兩行同時出現。若只看到膠囊、沒有 `發佈` 這一行，先確認 statusline-capsule 已更新到包含此修正的版本；仍然沒有的話，可能是目前分支沒有 PR 或 `gh` 查詢失敗，請回報。
 
 ## 安裝 shell script 版
 
