@@ -148,8 +148,10 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // another mod's band (ship-band) may sit beneath this one: draw above it instead of replacing it
+    const below = await next(e)
     const i = await read($, info)
-    if (i === null || e.props.hasSurvey) return next(e)
+    if (i === null || e.props.hasSurvey) return below
 
     const { Box, Text } = $.ui.resolve(e)
 
@@ -189,7 +191,7 @@ export const register: Register = on => {
       show[k] = false
     }
 
-    return (
+    const mine = (
       <Box>
         {show.acct && i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
         <Cap bg={BG_LOGO} fg={WHITE}>{` ${I_LOGO} ${i.model} `}</Cap>
@@ -219,5 +221,7 @@ export const register: Register = on => {
         )}
       </Box>
     )
+
+    return below ? <Box flexDirection="column">{mine}{below}</Box> : mine
   })
 }
