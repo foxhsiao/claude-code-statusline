@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Info } from '../types'
+import type { Info, Limit } from '../types'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
 
@@ -26,6 +26,7 @@ const BG_DIR = '#4285f4'
 const BG_GIT = '#fbbc05'
 const BG_USE = '#5f6368'
 const WHITE = '#ffffff'
+const DIM_USE = '#bdc1c6'
 const DARK = '#202124'
 const FG_ADD = '#137333'
 const FG_DEL = '#a50e0e'
@@ -73,6 +74,18 @@ const truncate = (str: string, max: number) => {
 const MAX_DIR = 20
 const MAX_BRANCH = 24
 
+// time left until an ISO timestamp as 3d4h / 2h10m / 45m; null once it has passed or can't be read
+const fmtReset = (iso: string | null, now: number) => {
+  if (iso === null) return null
+  const ms = Date.parse(iso) - now
+  if (!(ms > 0)) return null
+  const mins = Math.ceil(ms / 60000)
+  const d = Math.floor(mins / 1440)
+  const h = Math.floor((mins % 1440) / 60)
+  const m = mins % 60
+  return d > 0 ? `${d}d${h}h` : h > 0 ? `${h}h${m}m` : `${m}m`
+}
+
 const ctxIcon = (n: number) => {
   const k = Math.min(8, Math.max(1, Math.floor((n * 8 + 99) / 100)))
   return CTX_ICONS[k - 1]
@@ -82,7 +95,10 @@ async function refresh($: EngineInterface) {
   const cwd = await $.session.cwd()
   const model = modelName(await $.session.model())
   const usage = await $.session.usage()
-  const pick = (kind: string) => usage.rateLimits.find(r => r.kind === kind)?.percentUsed ?? null
+  const pick = (kind: string): Limit | null => {
+    const r = usage.rateLimits.find(l => l.kind === kind)
+    return r ? { pct: r.percentUsed, resetsAt: r.resetsAt ?? null } : null
+  }
 
   let branch: string | null = null
   let add = 0
@@ -128,7 +144,12 @@ async function refresh($: EngineInterface) {
 }
 
 export const register: Register = on => {
+  let tick: { cancel: () => void } | null = null
+
   on('session.start', async ($, e, next) => {
+    // the countdown moves with the clock, not with events: redraw once a minute
+    tick?.cancel()
+    tick = $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
     await refresh($).catch(() => {})
     return next(e)
   })
@@ -154,6 +175,7 @@ export const register: Register = on => {
     if (i === null || e.props.hasSurvey) return below
 
     const { Box, Text } = $.ui.resolve(e)
+    const now = await $.clock.now()
 
     const Cap = (p: { bg: string; fg: string; children?: unknown }) => (
       <Box>
@@ -165,16 +187,17 @@ export const register: Register = on => {
       </Box>
     )
 
-    const uses: [string, number][] = []
-    if (i.ctx !== null) uses.push([ctxIcon(i.ctx), i.ctx])
-    if (i.h5 !== null) uses.push([I_H5, i.h5])
-    if (i.d7 !== null) uses.push([I_D7, i.d7])
+    // icon, percent, time until the window resets (context has none)
+    const uses: [string, number, string | null][] = []
+    if (i.ctx !== null) uses.push([ctxIcon(i.ctx), i.ctx, null])
+    if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now)])
+    if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
 
     const dir = truncate(i.dir, MAX_DIR)
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
 
     // each capsule is its text plus the two caps and a trailing space
-    const useText = ' ' + uses.map(([icon, n], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%`).join('') + ' '
+    const useText = ' ' + uses.map(([icon, n, reset], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%${reset ? ` ${reset}` : ''}`).join('') + ' '
     const w = {
       acct: i.acct === null ? 0 : cells(` ${I_USER} ${i.acct} `) + 3,
       model: cells(` ${I_LOGO} ${i.model} `) + 3,
@@ -209,10 +232,11 @@ export const register: Register = on => {
           <Box>
             <Text color={BG_USE}>{CAP_L}</Text>
             <Text backgroundColor={BG_USE} color={WHITE}>{' '}</Text>
-            {uses.map(([icon, n], idx) => (
+            {uses.map(([icon, n, reset], idx) => (
               <Box key={icon}>
                 <Text backgroundColor={BG_USE} color={WHITE}>{`${idx > 0 ? '  ' : ''}${icon} `}</Text>
                 <Text backgroundColor={BG_USE} color={levelColor(n)}>{`${Math.floor(n)}%`}</Text>
+                {reset && <Text backgroundColor={BG_USE} color={DIM_USE}>{` ${reset}`}</Text>}
               </Box>
             ))}
             <Text backgroundColor={BG_USE} color={WHITE}>{' '}</Text>

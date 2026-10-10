@@ -1,3 +1,5 @@
+export type Limit = { pct: number; resetsAt: string | null }
+
 export type Info = {
   model: string
   dir: string
@@ -6,8 +8,8 @@ export type Info = {
   del: number
   acct: string | null
   ctx: number | null
-  h5: number | null
-  d7: number | null
+  h5: Limit | null
+  d7: Limit | null
 }
 
 declare module 'claude-code' {
