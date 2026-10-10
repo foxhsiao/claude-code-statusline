@@ -73,6 +73,18 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
+## 安裝 ship-band mod
+
+`mods/ship-band/` 在提示框上方多一行發佈狀態：目前分支的 PR、CI、是否已合併、工作區是否乾淨，以及（選用）正式站是不是 main 的最新版。需要 `git` 和 [`gh`](https://cli.github.com/)（已登入）。
+
+```
+/plugin install ship-band --marketplace foxhsiao/claude-code-statusline
+```
+
+正式站版本比對要在 repo 根目錄放 `.ship-band.json`，格式見 [`mods/ship-band/README.md`](mods/ship-band/README.md)。
+
+和 statusline-capsule 同時安裝時，兩者共用提示框上方這個位置，同一時間只有一個 mod 的畫面會被採用：ship-band 會把排在它下面的 mod 一起畫出來，statusline-capsule 目前不會。所以兩者的先後順序決定看得到哪一個；若只看到膠囊、沒有 `發佈` 這一行，代表 ship-band 排在膠囊下面被蓋掉了，請回報。
+
 ## 安裝 shell script 版
 
 ```sh

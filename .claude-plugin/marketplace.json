@@ -8,6 +8,11 @@
       "name": "statusline-capsule",
       "source": "./mods/statusline-capsule",
       "description": "Powerline capsule status band above the prompt (model, dir, git, account, usage) in Google's four colors."
+    },
+    {
+      "name": "ship-band",
+      "source": "./mods/ship-band",
+      "description": "Band above the prompt showing PR, CI, merge state, whether production runs main's latest, and whether the working tree is clean."
     }
   ],
   "description": "Powerline capsule status band for Claude Code."
