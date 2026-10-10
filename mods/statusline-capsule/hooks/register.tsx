@@ -340,24 +340,32 @@ export const register: Register = on => {
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
 
     // each capsule is its text plus the two caps and a trailing space
-    const useText = ' ' + uses.map(([icon, n, reset], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%${reset ? ` ${reset}` : ''}`).join('') + ' '
+    // the usage capsule with and without the reset countdowns (the last thing to give up when space runs out)
+    const useText = (withReset: boolean) =>
+      ' ' +
+      uses
+        .map(([icon, n, reset], idx) => `${idx > 0 ? '  ' : ''}${icon} ${Math.floor(n)}%${withReset && reset ? ` ${reset}` : ''}`)
+        .join('') +
+      ' '
     const w = {
       acct: i.acct === null ? 0 : cells(` ${I_USER} ${i.acct} `) + 3,
       model: cells(` ${I_LOGO} ${i.model} `) + 3,
       dir: cells(` ${I_DIR} ${dir} `) + 3,
       git: branch === null ? 0 : cells(` ${I_BRANCH} ${branch}  ${I_DIFF} +${i.add} -${i.del} ${sync}`) + 3,
       extra: cells(extraText),
-      use: uses.length === 0 ? 0 : cells(useText) + 2,
+      use: uses.length === 0 ? 0 : cells(useText(true)) + 2,
+      useShort: uses.length === 0 ? 0 : cells(useText(false)) + 2,
     }
-    // too narrow: drop the account, the folder, the PR/CI/deploy chips, then git; model and usage stay
-    const show = { acct: true, dir: true, extra: true, git: true }
+    // too narrow: drop the account, the folder, the PR/CI/deploy chips, then git, and last the reset countdowns;
+    // model and usage stay
+    const show = { acct: true, dir: true, extra: true, git: true, reset: true }
     const total = () =>
       w.model +
-      w.use +
+      (show.reset ? w.use : w.useShort) +
       (show.acct ? w.acct : 0) +
       (show.dir ? w.dir : 0) +
       (show.git ? w.git + (show.extra ? w.extra : 0) : 0)
-    for (const k of ['acct', 'dir', 'extra', 'git'] as const) {
+    for (const k of ['acct', 'dir', 'extra', 'git', 'reset'] as const) {
       if (total() <= e.props.bodyColumns) break
       show[k] = false
     }
@@ -393,7 +401,7 @@ export const register: Register = on => {
               <Box key={icon}>
                 <Text backgroundColor={BG_USE} color={WHITE}>{`${idx > 0 ? '  ' : ''}${icon} `}</Text>
                 <Text backgroundColor={BG_USE} color={levelColor(n)}>{`${Math.floor(n)}%`}</Text>
-                {reset && <Text backgroundColor={BG_USE} color={DIM_USE}>{` ${reset}`}</Text>}
+                {show.reset && reset && <Text backgroundColor={BG_USE} color={DIM_USE}>{` ${reset}`}</Text>}
               </Box>
             ))}
             <Text backgroundColor={BG_USE} color={WHITE}>{' '}</Text>

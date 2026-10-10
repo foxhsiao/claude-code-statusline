@@ -1,6 +1,6 @@
 {
   "name": "statusline-capsule",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Powerline capsule status band above the prompt (model, dir, git with PR/CI/deploy status, account, usage) in Google's four colors.",
   "types": "./types/index.d.ts",
   "author": {
