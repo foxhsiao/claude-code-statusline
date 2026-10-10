@@ -252,27 +252,28 @@ async function refreshRemote($: EngineInterface, cache: Cache, isForced: boolean
   }
 }
 
+// off the hook's critical path: the network reads must not hold anything back
+function kick($: EngineInterface, cache: Cache, isForced: boolean) {
+  $.clock.after(0, () => {
+    void refreshRemote($, cache, isForced).catch(() => {})
+  })
+}
+
 // commands that change what the PR / CI / deploy chips show beyond the working tree
 const SHIPS = /\b(gh\s+pr|git\s+(push|pull|fetch|merge|switch|checkout)|wrangler|deploy|publish)\b/
 
 export const register: Register = on => {
   let tick: { cancel: () => void } | null = null
   const cache: Cache = { key: '', at: 0, remote: null, isBusy: false }
-  // off the hook's critical path: the network reads must not hold anything back
-  const kick = ($: EngineInterface, isForced: boolean) => {
-    $.clock.after(0, () => {
-      void refreshRemote($, cache, isForced).catch(() => {})
-    })
-  }
 
   on('session.start', async ($, e, next) => {
     // the countdown moves with the clock, not with events: redraw once a minute
     tick?.cancel()
     tick = $.clock.every(60_000, () => {
       $.ui.invalidate('ui.render')
-      kick($, false)
+      kick($, cache, false)
     })
-    kick($, true)
+    kick($, cache, true)
     await refresh($).catch(() => {})
     return next(e)
   })
@@ -285,12 +286,12 @@ export const register: Register = on => {
     const ran = await next(e)
     if (ran.isReadOnly !== true) {
       await refresh($).catch(() => {})
-      kick($, e.tool === 'Bash' && SHIPS.test(String(e.command)))
+      kick($, cache, e.tool === 'Bash' && SHIPS.test(String(e.command)))
     }
     return ran
   })
   on('turn.complete', async ($, e, next) => {
-    kick($, true)
+    kick($, cache, true)
     await refresh($).catch(() => {})
     return next(e)
   })

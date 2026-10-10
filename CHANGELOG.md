@@ -2,6 +2,10 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.5.1
+
+- 修復 0.5.0 的外掛驗證失敗：`$` 傳給了不在檔案頂層宣告的函式，`claude plugin validate` 不通過，導致整個 mod 沒有載入、statusline 完全消失。已改成頂層函式，驗證通過。**0.5.0 無法使用，請直接更新到 0.5.1。**
+
 ## statusline-capsule 0.5.0
 
 ship-band 併入 statusline-capsule，成為單一 mod。
