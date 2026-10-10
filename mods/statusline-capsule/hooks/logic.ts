@@ -78,9 +78,11 @@ export const chips = (r: Remote): Chip[] => {
   }
 
   if (r.deploy) {
-    if (r.deploy.status === 'current') out.push({ text: '✓部署', tone: 'ok' })
-    else if (r.deploy.status === 'behind') out.push({ text: '部署落後', tone: 'bad' })
-    else out.push({ text: '?部署', tone: 'warn' })
+    // the Nerd Font rocket marks the deploy: green when production runs main's latest, red when it is behind,
+    // yellow with a ? when it could not be read
+    if (r.deploy.status === 'current') out.push({ text: '\u{f135}', tone: 'ok' })
+    else if (r.deploy.status === 'behind') out.push({ text: '\u{f135}', tone: 'bad' })
+    else out.push({ text: '\u{f135}?', tone: 'warn' })
   }
 
   return out

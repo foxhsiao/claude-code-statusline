@@ -81,7 +81,7 @@ describe('chips', () => {
       pr: { number: 7, state: 'MERGED', isDraft: false, checks: 'pass' },
       deploy: { status: 'behind', deployed: 'aaaaaaa1111', main: 'bbbbbbb2222' },
     }
-    expect(texts(r)).toEqual(['#7 已合併', '\u{f058}', '部署落後'])
+    expect(texts(r)).toEqual(['#7 已合併', '\u{f058}', '\u{f135}'])
   })
   test('failed CI is bad, a closed PR is bad', () => {
     const r: Remote = { ...base, branch: 'x', isInMain: false, pr: { number: 1, state: 'OPEN', isDraft: false, checks: 'fail' } }
@@ -101,10 +101,17 @@ describe('chips', () => {
     }
     expect(texts(r)).toEqual(['#3 草稿'])
   })
-  test('deploy tones: current is ok, unreadable is a warning', () => {
-    const ok = chips({ ...base, deploy: { status: 'current', deployed: 'a', main: 'a' } })
-    expect(ok.find(c => c.text.includes('部署'))?.tone).toBe('ok')
-    const bad = chips({ ...base, deploy: { status: 'error', deployed: null, main: 'a' } })
-    expect(bad.find(c => c.text.includes('部署'))?.tone).toBe('warn')
+  test('deploy: a rocket, green when current, red when behind, yellow with a ? when unreadable', () => {
+    expect(chips({ ...base, deploy: { status: 'current', deployed: 'a', main: 'a' } })).toEqual([
+      { text: '\u{f135}', tone: 'ok' },
+    ])
+    for (const status of ['error', 'unknown'] as const) {
+      expect(chips({ ...base, deploy: { status, deployed: null, main: 'a' } })).toEqual([
+        { text: '\u{f135}?', tone: 'warn' },
+      ])
+    }
+    expect(chips({ ...base, deploy: { status: 'behind', deployed: 'a', main: 'b' } })).toEqual([
+      { text: '\u{f135}', tone: 'bad' },
+    ])
   })
 })
