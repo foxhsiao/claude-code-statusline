@@ -1,0 +1,9 @@
+{
+  "name": "ship-band",
+  "version": "0.1.0",
+  "description": "Band above the prompt showing PR, CI, merge state, whether production runs main's latest, and whether the working tree is clean.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "foxhsiao"
+  }
+}
