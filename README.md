@@ -108,7 +108,7 @@ fc-cache -fv
 
 正式站版本比對要在 repo 根目錄放 `.ship-band.json`，格式見 [`mods/ship-band/README.md`](mods/ship-band/README.md)。
 
-和 statusline-capsule 同時安裝時，兩者共用提示框上方這個位置，同一時間只有一個 mod 的畫面會被採用：ship-band 會把排在它下面的 mod 一起畫出來，statusline-capsule 目前不會。所以兩者的先後順序決定看得到哪一個；若只看到膠囊、沒有 `發佈` 這一行，代表 ship-band 排在膠囊下面被蓋掉了，請回報。
+和 statusline-capsule 同時安裝時，兩者共用提示框上方這個位置，但兩行都看得到：statusline-capsule 會把膠囊疊在排在它下面的 mod 上方，ship-band 的 `發佈` 行也同樣處理，所以不論先後順序，都是膠囊與 `發佈` 兩行同時出現。若只看到膠囊、沒有 `發佈` 這一行，先確認 statusline-capsule 已更新到包含此修正的版本；仍然沒有的話，可能是目前分支沒有 PR 或 `gh` 查詢失敗，請回報。
 
 ## 安裝 shell script 版
 
