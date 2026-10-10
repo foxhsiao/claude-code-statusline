@@ -11,6 +11,8 @@ Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
 ![statusline screenshot](docs/screenshot.png)
 
+上圖是寬度足夠時的畫面，五個膠囊由左到右依序是帳號、模型、資料夾、git（分支與增刪行數）、用量（context、5h、7d）。終端機變窄或開啟側欄時會自動隱藏部分膠囊，見[窄終端機與長名稱](#窄終端機與長名稱)。
+
 ## 需求
 
 - [Nerd Font](https://www.nerdfonts.com/)（兩種版本都需要）
@@ -89,6 +91,8 @@ fc-cache -fv
 | --- | --- | --- |
 | `MAX_DIR` | 20 | 資料夾名稱最多顯示格數 |
 | `MAX_BRANCH` | 24 | 分支名稱最多顯示格數 |
+
+實際畫面：Claude Code 視窗左邊開著側欄（spaces／agents），內容區只剩約 66 欄時，提示框上方只剩 `Sonnet 5.5` 與用量（context、5h、7d）兩個膠囊，單行顯示、不折行，右側的 `[-]` 也保留。關掉側欄、內容區變寬後，隱藏的膠囊會回來。資料夾名稱過長時則在寬度足夠的情況下以 `…` 結尾，例如 `claude-code-statusl…`。
 
 截斷發生在寬度判斷之前，所以隱藏順序用的是截斷後的實際寬度。常數在 `mods/statusline-capsule/hooks/register.tsx`。
 
