@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Remote } from '../types'
-import { chips, compareDeploy, findSha, isUnpushed, parseConfig, rollup } from './logic'
+import { chips, isUnpushed, rollup } from './logic'
 
 const base: Remote = {
   branch: 'main',
   defaultBranch: 'main',
   isInMain: true,
   pr: null,
-  deploy: null,
 }
 
 const texts = (r: Remote) => chips(r).map(c => c.text)
@@ -32,35 +31,6 @@ describe('rollup', () => {
   })
 })
 
-describe('deploy', () => {
-  test('parseConfig needs an http(s) url', () => {
-    expect(parseConfig('{"deploy":{"url":"https://x.dev/version.json"}}')).toEqual({
-      url: 'https://x.dev/version.json',
-      header: undefined,
-      pattern: undefined,
-    })
-    expect(parseConfig('{"deploy":{"url":"file:///etc/passwd"}}')).toBe(null)
-    expect(parseConfig('not json')).toBe(null)
-    expect(parseConfig('')).toBe(null)
-  })
-  test('parseConfig lower-cases the header name', () => {
-    expect(parseConfig('{"deploy":{"url":"https://x.dev","header":"X-Commit"}}')?.header).toBe('x-commit')
-  })
-  test('findSha takes the first commit-like token', () => {
-    expect(findSha('{"commit":"ABCDEF1234567"}')).toBe('abcdef1234567')
-    expect(findSha('version 12 build')).toBe(null)
-    expect(findSha('sha=abc1234 x', 'sha=([0-9a-f]+)')).toBe('abc1234')
-    expect(findSha('abc1234', '([')).toBe(null)
-  })
-  test('compareDeploy matches on a short or a full sha', () => {
-    expect(compareDeploy('abc1234', 'abc1234def56789')).toBe('current')
-    expect(compareDeploy('abc1234def56789', 'abc1234')).toBe('current')
-    expect(compareDeploy('abc1234', 'fff0000aaa')).toBe('behind')
-    expect(compareDeploy(null, 'abc1234')).toBe('unknown')
-    expect(compareDeploy('abc1234', null)).toBe('unknown')
-  })
-})
-
 describe('chips', () => {
   test('clean default branch shows nothing', () => {
     expect(texts(base)).toEqual([])
@@ -74,14 +44,13 @@ describe('chips', () => {
     }
     expect(texts(r)).toEqual(['#12', '\u{f021}'])
   })
-  test('merged PR with green CI and a stale deploy', () => {
+  test('merged PR with green CI', () => {
     const r: Remote = {
       ...base,
       branch: 'fix/x',
       pr: { number: 7, state: 'MERGED', isDraft: false, checks: 'pass' },
-      deploy: { status: 'behind', deployed: 'aaaaaaa1111', main: 'bbbbbbb2222' },
     }
-    expect(texts(r)).toEqual(['#7 已合併', '\u{f058}', '\u{f135}'])
+    expect(texts(r)).toEqual(['#7 已合併', '\u{f058}'])
   })
   test('failed CI is bad, a closed PR is bad', () => {
     const r: Remote = { ...base, branch: 'x', isInMain: false, pr: { number: 1, state: 'OPEN', isDraft: false, checks: 'fail' } }
@@ -100,19 +69,6 @@ describe('chips', () => {
       pr: { number: 3, state: 'OPEN', isDraft: true, checks: 'none' },
     }
     expect(texts(r)).toEqual(['#3 草稿'])
-  })
-  test('deploy: a rocket, green when current, red when behind, yellow with a ? when unreadable', () => {
-    expect(chips({ ...base, deploy: { status: 'current', deployed: 'a', main: 'a' } })).toEqual([
-      { text: '\u{f135}', tone: 'ok' },
-    ])
-    for (const status of ['error', 'unknown'] as const) {
-      expect(chips({ ...base, deploy: { status, deployed: null, main: 'a' } })).toEqual([
-        { text: '\u{f135}?', tone: 'warn' },
-      ])
-    }
-    expect(chips({ ...base, deploy: { status: 'behind', deployed: 'a', main: 'b' } })).toEqual([
-      { text: '\u{f135}', tone: 'bad' },
-    ])
   })
 })
 

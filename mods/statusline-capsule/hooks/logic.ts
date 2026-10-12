@@ -1,9 +1,7 @@
-import type { Checks, Deploy, Remote } from '../types'
+import type { Checks, Remote } from '../types'
 
 export type Tone = 'ok' | 'warn' | 'bad' | 'dim'
 export type Chip = { text: string; tone: Tone }
-
-export type DeployConfig = { url: string; header?: string; pattern?: string }
 
 // gh's statusCheckRollup mixes CheckRun (status/conclusion) and StatusContext (state)
 export const rollup = (items: unknown): Checks => {
@@ -24,41 +22,7 @@ export const rollup = (items: unknown): Checks => {
   return isPending ? 'pending' : 'pass'
 }
 
-export const parseConfig = (text: string): DeployConfig | null => {
-  try {
-    const url = (JSON.parse(text) as { deploy?: { url?: unknown; header?: unknown; pattern?: unknown } }).deploy
-    if (!url || typeof url.url !== 'string' || !/^https?:\/\//.test(url.url)) return null
-    return {
-      url: url.url,
-      header: typeof url.header === 'string' ? url.header.toLowerCase() : undefined,
-      pattern: typeof url.pattern === 'string' ? url.pattern : undefined,
-    }
-  } catch {
-    return null
-  }
-}
-
-// the first commit-looking token: the pattern's first group when it has one, else the whole match
-export const findSha = (text: string, pattern?: string): string | null => {
-  let re: RegExp
-  try {
-    re = new RegExp(pattern ?? '\\b[0-9a-f]{7,40}\\b', 'i')
-  } catch {
-    return null
-  }
-  const m = re.exec(text)
-  const hit = m ? (m[1] ?? m[0]) : null
-  return hit && /^[0-9a-f]{7,40}$/i.test(hit) ? hit.toLowerCase() : null
-}
-
-export const compareDeploy = (deployed: string | null, main: string | null): Deploy['status'] => {
-  if (!deployed || !main) return 'unknown'
-  const a = deployed.toLowerCase()
-  const b = main.toLowerCase()
-  return a.startsWith(b) || b.startsWith(a) ? 'current' : 'behind'
-}
-
-// what the git capsule says about the PR, CI and production; nothing when there is nothing to say
+// what the git capsule says about the PR and CI; nothing when there is nothing to say
 export const chips = (r: Remote): Chip[] => {
   const out: Chip[] = []
 
@@ -75,14 +39,6 @@ export const chips = (r: Remote): Chip[] => {
     else if (checks === 'pending') out.push({ text: '\u{f021}', tone: 'warn' })
   } else if (r.branch !== r.defaultBranch && r.isInMain) {
     out.push({ text: `已進 ${r.defaultBranch}`, tone: 'ok' })
-  }
-
-  if (r.deploy) {
-    // the Nerd Font rocket marks the deploy: green when production runs main's latest, red when it is behind,
-    // yellow with a ? when it could not be read
-    if (r.deploy.status === 'current') out.push({ text: '\u{f135}', tone: 'ok' })
-    else if (r.deploy.status === 'behind') out.push({ text: '\u{f135}', tone: 'bad' })
-    else out.push({ text: '\u{f135}?', tone: 'warn' })
   }
 
   return out

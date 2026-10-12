@@ -2,7 +2,7 @@
 
 Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
-顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數（有 PR、CI、部署時一併顯示）｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
+顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數（有 PR、CI 時一併顯示）｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
 
 有兩種版本：
 
@@ -13,7 +13,7 @@ Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
 上圖是乾淨、與遠端同步的 `main` 分支、寬度足夠時的畫面，五個膠囊由左到右依序是：帳號、模型、資料夾（名稱過長時以 `…` 截斷）、git（分支與增刪行數）、用量（context、5h、7d；5h 與 7d 後面是距離重設的倒數）。
 
-分支有未推送的 commit、是沒推送過的新分支，或有 PR、部署設定時，黃色 git 膠囊後面會多出內容，見下方「git 膠囊：↑↓、PR、CI、部署」一節。終端機變窄或開啟側欄時會自動隱藏部分膠囊，見[窄終端機與長名稱](#窄終端機與長名稱)。
+分支有未推送的 commit、是沒推送過的新分支，或有 PR 時，黃色 git 膠囊後面會多出內容，見下方「git 膠囊：↑↓、PR、CI」一節。終端機變窄或開啟側欄時會自動隱藏部分膠囊，見[窄終端機與長名稱](#窄終端機與長名稱)。
 
 ## 需求
 
@@ -78,7 +78,7 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
-### git 膠囊：↑↓、PR、CI、部署
+### git 膠囊：↑↓、PR、CI
 
 黃色 git 膠囊在分支與增刪行數後面，視情況多顯示這些內容：
 
@@ -89,21 +89,22 @@ fc-cache -fv
 | `#12` | 開著的 PR；草稿為 `#12 草稿`；`#12 已合併`（綠）、`#12 已關閉`（紅） |
 | 圈圈打勾（綠）、圈圈打叉（紅）、循環箭頭（黃） | PR 的 CI 檢查全部通過、有失敗、執行中，緊接在 `#N` 後面；沒有 CI 時不顯示。這是 Nerd Font 圖示（U+F058、U+F057、U+F021），不是文字 |
 | `已進 main` | 沒有 PR，但這個分支的 commit 已經在預設分支裡 |
-| 火箭圖示：綠、紅、黃加 `?` | 正式站版本與預設分支相同（綠）、落後（紅）、讀不到或認不出（黃，火箭後面多一個 `?`）。火箭是 Nerd Font 圖示（U+F135），不是文字 |
 
-「有東西才顯示」：沒有 PR、沒設定部署時，只剩分支、增刪行數與 ↑↓；PR、CI、部署前面有一條 `│` 分隔。
+PR 開著、CI 全部通過時（`#362` 後面綠色打勾）：
+
+![黃色 git 膠囊：分支、增刪行數，接著 #362 與綠色打勾](docs/screenshot-pr.png)
+
+同一個 PR 的 CI 失敗（上，`#410` 後面紅色叉叉），重跑後通過（下，綠色打勾）：
+
+![同一個 PR 的 CI 失敗與重跑後通過](docs/screenshot-ci-fail.png)
+
+「有東西才顯示」：沒有 PR 時，只剩分支、增刪行數與 ↑↓；PR、CI 前面有一條 `│` 分隔。
 
 PR 與 CI 來自 `gh pr view`，需要已登入的 [`gh`](https://cli.github.com/)；沒有 `gh` 時這兩項不顯示，其餘照常。
 
-**比對正式站版本（選用）**：在 repo 根目錄放 `.ship-band.json`：
+**部署狀態已移除**：以前會依 `.ship-band.json` 比對正式站版本，並在 CI 後面顯示火箭圖示。這個比對常常對不上，所以拿掉了；現在不再讀 `.ship-band.json`，也不再抓部署網址，檔案留著也沒有影響。
 
-```json
-{ "deploy": { "url": "https://example.com/version.json" } }
-```
-
-膠囊會抓這個網址，從內容取第一個像 commit 的字串（7 到 40 個十六進位字元），與 `origin/<預設分支>` 比對，所以正式站要公開自己的 commit。可選欄位：`"header": "x-commit"` 改讀該回應標頭，`"pattern": "sha=([0-9a-f]+)"` 自己指定要取的字串（有群組時取第一組）。沒有這個檔案就不顯示部署。
-
-這些要上網的讀取（`git fetch`、`gh`、部署網址）最多每分鐘一次，另外在回合結束，以及執行 `gh pr`、`git push`、`wrangler`、`deploy` 等指令後觸發，不會卡住工具呼叫。不在 git repo 內時整段不顯示。
+這些要上網的讀取（`git fetch`、`gh`）最多每分鐘一次，另外在回合結束，以及執行 `gh pr`、`git push`、`git pull` 等指令後觸發，不會卡住工具呼叫。不在 git repo 內時整段不顯示。
 
 #### 從 ship-band 遷移
 
@@ -114,8 +115,8 @@ claude plugin uninstall ship-band
 claude plugin update statusline-capsule
 ```
 
-- `.ship-band.json` 沿用，不用改。
-- 提示框上方不再有獨立的 `發佈` 那一行；PR、CI、部署改顯示在黃色 git 膠囊裡。
+- `.ship-band.json` 不再使用（部署比對已移除），可以刪掉。
+- 提示框上方不再有獨立的 `發佈` 那一行；PR、CI 改顯示在黃色 git 膠囊裡。
 - 原本的分支名與「工作區 ✓ 乾淨」不再另外顯示：分支在 git 膠囊，有未提交變更時看 `+n -n`。
 - 兩個都留著的話，舊的 `發佈` 行還會出現，內容與膠囊重複。
 
@@ -140,7 +141,7 @@ claude plugin update statusline-capsule
 
 1. 帳號
 2. 資料夾
-3. git 膠囊裡的 PR、CI、部署
+3. git 膠囊裡的 PR、CI
 4. 整個 git 膠囊（分支與增刪行數）
 5. 用量膠囊裡 5h／7d 的重設倒數
 

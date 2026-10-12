@@ -7,19 +7,12 @@ export type Pr = {
   checks: Checks
 }
 
-export type Deploy = {
-  status: 'current' | 'behind' | 'unknown' | 'error'
-  deployed: string | null
-  main: string | null
-}
-
-// the parts that need the network (fetch, gh, the deploy URL); read apart from Info and at most once a minute
+// the parts that need the network (fetch, gh); read apart from Info and at most once a minute
 export type Remote = {
   branch: string
   defaultBranch: string
   isInMain: boolean
   pr: Pr | null
-  deploy: Deploy | null
 }
 
 export type Limit = { pct: number; resetsAt: string | null }

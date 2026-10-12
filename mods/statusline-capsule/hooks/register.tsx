@@ -1,14 +1,14 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Deploy, Info, Limit, Pr, Remote } from '../types'
-import { chips, compareDeploy, findSha, isUnpushed, parseConfig, rollup } from './logic'
+import type { Info, Limit, Pr, Remote } from '../types'
+import { chips, isUnpushed, rollup } from './logic'
 import type { Tone } from './logic'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
 const remote = atom({ plugin: 'statusline-capsule', key: 'remote' } as const, null)
 
-// the network parts (fetch, gh, the deploy URL) are re-read at most this often
+// the network parts (fetch, gh) are re-read at most this often
 const REMOTE_TTL_MS = 60_000
 // the minute tick fires on the same period and `at` is stamped before the read, so a strict `>` skipped about
 // every other tick (a real refresh every 60-120 s); count a read as due a little early
@@ -177,13 +177,12 @@ async function run($: EngineInterface, cwd: string, argv: string[], timeoutMs = 
   }
 }
 
-async function readRemote($: EngineInterface, cwd: string, root: string, branch: string): Promise<Remote> {
+async function readRemote($: EngineInterface, cwd: string, branch: string): Promise<Remote> {
   const head = (await run($, cwd, ['git', 'symbolic-ref', '--short', 'refs/remotes/origin/HEAD']))?.trim()
   const defaultBranch = head ? head.replace(/^origin\//, '') : 'main'
   const onDefault = branch === defaultBranch
 
   await run($, cwd, ['git', 'fetch', '--quiet', 'origin', defaultBranch], 20_000)
-  const mainSha = (await run($, cwd, ['git', 'rev-parse', `origin/${defaultBranch}`]))?.trim() || null
   const isInMain =
     onDefault || (await run($, cwd, ['git', 'merge-base', '--is-ancestor', 'HEAD', `origin/${defaultBranch}`])) !== null
 
@@ -200,30 +199,7 @@ async function readRemote($: EngineInterface, cwd: string, root: string, branch:
     }
   }
 
-  let deploy: Deploy | null = null
-  let text = ''
-  try {
-    text = await $.fs.read(`${root}/.ship-band.json`)
-  } catch {
-    text = ''
-  }
-  const cfg = parseConfig(text)
-  if (cfg) {
-    try {
-      const res = await $.http.fetch(cfg.url)
-      if (!res.ok) {
-        deploy = { status: 'error', deployed: null, main: mainSha }
-      } else {
-        const source = cfg.header ? (res.headers[cfg.header] ?? '') : res.text
-        const deployed = findSha(source, cfg.pattern)
-        deploy = { status: compareDeploy(deployed, mainSha), deployed, main: mainSha }
-      }
-    } catch {
-      deploy = { status: 'error', deployed: null, main: mainSha }
-    }
-  }
-
-  return { branch, defaultBranch, isInMain, pr, deploy }
+  return { branch, defaultBranch, isInMain, pr }
 }
 
 async function refreshRemote($: EngineInterface, cache: Cache, isForced: boolean) {
@@ -243,7 +219,7 @@ async function refreshRemote($: EngineInterface, cache: Cache, isForced: boolean
     const key = `${root}|${branch}`
     const now = await $.clock.now()
     if (isForced || cache.key !== key || cache.remote === null || now - cache.at >= REMOTE_TTL_MS - REMOTE_SLACK_MS) {
-      cache.remote = await readRemote($, cwd, root, branch)
+      cache.remote = await readRemote($, cwd, branch)
       cache.key = key
       cache.at = now
     }
@@ -262,8 +238,8 @@ function kick($: EngineInterface, cache: Cache, isForced: boolean) {
   })
 }
 
-// commands that change what the PR / CI / deploy chips show beyond the working tree
-const SHIPS = /\b(gh\s+pr|git\s+(push|pull|fetch|merge|switch|checkout)|wrangler|deploy|publish)\b/
+// commands that change what the PR / CI chips show beyond the working tree
+const SHIPS = /\b(gh\s+pr|git\s+(push|pull|fetch|merge|switch|checkout))\b/
 
 export const register: Register = on => {
   let tick: { cancel: () => void } | null = null
@@ -356,7 +332,7 @@ export const register: Register = on => {
       use: uses.length === 0 ? 0 : cells(useText(true)) + 2,
       useShort: uses.length === 0 ? 0 : cells(useText(false)) + 2,
     }
-    // too narrow: drop the account, the folder, the PR/CI/deploy chips, then git, and last the reset countdowns;
+    // too narrow: drop the account, the folder, the PR/CI chips, then git, and last the reset countdowns;
     // model and usage stay
     const show = { acct: true, dir: true, extra: true, git: true, reset: true }
     const total = () =>
