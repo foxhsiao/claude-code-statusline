@@ -78,6 +78,40 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
+### Windows（PowerShell）
+
+只能用 mod 版：shell script 版需要 `bash` 與 `jq`，PowerShell 跑不了。以下步驟尚未在 Windows 上實測過。
+
+1. 安裝 Nerd Font，找不到的話改用上面「安裝 Nerd Font」的下載頁：
+
+   ```powershell
+   winget install DEVCOM.JetBrainsMonoNerdFont
+   ```
+
+   接著把終端機字型換成它。Windows Terminal：設定 → 設定檔 → 預設值 → 外觀 → 字型，選 `JetBrainsMono Nerd Font`。
+
+2. 安裝 `git` 與 `gh`（`gh` 選用，沒有的話黃色膠囊不顯示 PR 與 CI）：
+
+   ```powershell
+   winget install Git.Git
+   winget install GitHub.cli
+   gh auth login
+   ```
+
+   裝完要重開終端機，PATH 才會更新。
+
+3. 開 Claude Code，輸入下面的指令，依序按 `y` 加入 marketplace、選 scope：
+
+   ```
+   /plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
+   ```
+
+4. 重開 Claude Code，用 `claude plugin list` 確認版本與 `✔ enabled`。
+
+只想先試用：在 repo 資料夾執行 `claude --plugin-dir .\mods\statusline-capsule`。
+
+帳號那一格讀的是 `~/.claude.json`（Windows 上是 `C:\Users\<使用者名稱>\.claude.json`）。帳號是空的話先查這個檔案在不在。
+
 ### git 膠囊：↑↓、PR、CI
 
 黃色 git 膠囊在分支與增刪行數後面，視情況多顯示這些內容：
