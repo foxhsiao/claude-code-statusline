@@ -78,6 +78,16 @@ fc-cache -fv
 
 更新：改程式後要把 `mods/statusline-capsule/.claude-plugin/plugin.json` 的 `version` 加一，否則已安裝的人 `claude plugin update` 會判斷沒有新版。
 
+### 關閉
+
+不想看到膠囊，但不想解除安裝：在 `~/.claude/settings.json` 的 `enabledPlugins` 把它設成 `false`，重開 Claude Code。
+
+```json
+"statusline-capsule@claude-code-statusline": false
+```
+
+想再開回來，改回 `true`。要完全移除就執行 `/plugin uninstall statusline-capsule`。
+
 ### Windows（PowerShell）
 
 只能用 mod 版：shell script 版需要 `bash` 與 `jq`，PowerShell 跑不了。以下步驟尚未在 Windows 上實測過。
