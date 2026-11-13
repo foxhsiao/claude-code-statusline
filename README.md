@@ -60,6 +60,14 @@ fc-cache -fv
 
 `mods/statusline-capsule/` 是 Claude Code mod：膠囊畫在提示框上方，資料來自 `$.session`，不需要 `jq` 或 `settings.json` 的 `statusLine`。
 
+**一句話安裝**：在終端機（macOS、Linux、Windows PowerShell 都可以）執行下面這行，會自動加入 marketplace 並裝到 user scope，裝完重開 Claude Code：
+
+```sh
+claude plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
+```
+
+或在 Claude Code 裡輸入：
+
 ```
 /plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
 ```
