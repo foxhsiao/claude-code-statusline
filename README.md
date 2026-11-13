@@ -118,10 +118,10 @@ claude plugin install statusline-capsule --marketplace foxhsiao/claude-code-stat
 
    裝完要重開終端機，PATH 才會更新。
 
-3. 開 Claude Code，輸入下面的指令，依序按 `y` 加入 marketplace、選 scope：
+3. 在 PowerShell 執行下面這行，會自動加入 marketplace 並裝到 user scope：
 
-   ```
-   /plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
+   ```powershell
+   claude plugin install statusline-capsule --marketplace foxhsiao/claude-code-statusline
    ```
 
 4. 重開 Claude Code，用 `claude plugin list` 確認版本與 `✔ enabled`。
