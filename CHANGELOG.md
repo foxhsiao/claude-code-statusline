@@ -2,6 +2,13 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.8.0
+
+- 桌面與手機 app 不再用 emoji：每顆膠囊改畫成一個小 SVG，有圓角膠囊底、白色線條圖示（星星、資料夾、分支、增刪、帳號、時鐘、日曆、CI 勾／叉／重跑）和等寬字。
+- context 圖示改成一個小圓餅，依用量填滿。
+- 新增 `hooks/pill.ts` 負責畫膠囊，0.7.0 的 emoji 圖示組拿掉。
+- 終端機不變，照舊用 Nerd Font。
+
 ## statusline-capsule 0.7.0
 
 - 桌面與手機 app 改用 emoji 圖示：這兩處用 app 自己的字體，沒有 Nerd Font，原本每個圖示都畫成條紋方塊。現在膠囊兩端拿掉，圖示換成 🚀 📁 🌿 📝 👤 🧠 ⏰ 📅，CI 狀態換成 ✅ ❌ 🔄。

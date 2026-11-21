@@ -2,7 +2,9 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Info, Limit, Pr, Remote } from '../types'
-import { chips, glyphsFor, isUnpushed, rollup } from './logic'
+import { chips, isUnpushed, NERD, rollup } from './logic'
+import { pill } from './pill'
+import type { IconName, Part } from './pill'
 import type { Tone } from './logic'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
@@ -43,15 +45,14 @@ const modelName = (id: string) => {
   return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
 }
 
-// display cells: CJK / fullwidth / emoji count 2, everything else 1 (Nerd Font glyphs are single-cell)
+// display cells: CJK / fullwidth count 2, everything else 1 (Nerd Font glyphs are single-cell)
 const cells = (str: string) => {
   let w = 0
   for (const ch of str) {
     const c = ch.codePointAt(0) ?? 0
     w += (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) ||
       (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe6f) || (c >= 0xff00 && c <= 0xff60) ||
-      (c >= 0xffe0 && c <= 0xffe6) || c === 0x23f0 || c === 0x2705 || c === 0x274c ||
-      (c >= 0x1f300 && c <= 0x1faff) ? 2 : 1
+      (c >= 0xffe0 && c <= 0xffe6) ? 2 : 1
   }
   return w
 }
@@ -275,7 +276,7 @@ export const register: Register = on => {
     const r = loaded !== null && i.branch !== null && loaded.branch === i.branch ? loaded : null
 
     const { Box, Text } = $.ui.resolve(e)
-    const g = glyphsFor(e.surface)
+    const g = NERD
     const { capL: CAP_L, capR: CAP_R, dir: I_DIR, branch: I_BRANCH, diff: I_DIFF, user: I_USER, h5: I_H5, d7: I_D7, logo: I_LOGO } = g
     const now = await $.clock.now()
 
@@ -290,16 +291,17 @@ export const register: Register = on => {
     )
 
     // icon, percent, time until the window resets (context has none)
-    const uses: [string, number, string | null][] = []
-    if (i.ctx !== null) uses.push([ctxIcon(g.ctx, i.ctx), i.ctx, null])
-    if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now)])
-    if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
+    // `kind` picks the icon: a Nerd Font glyph in the terminal, a vector one in the apps
+    const uses: [string, number, string | null, 'ctx' | 'h5' | 'd7'][] = []
+    if (i.ctx !== null) uses.push([ctxIcon(g.ctx, i.ctx), i.ctx, null, 'ctx'])
+    if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now), 'h5'])
+    if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now), 'd7'])
 
     // commits not pushed / not pulled, or ↑新 for a branch never pushed; empty when in sync
     const unpushed = r !== null && isUnpushed(r, i.hasUpstream)
     const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}${unpushed ? '↑新 ' : ''}`
     // PR, CI and production, only when there is something to say
-    const extra = r === null ? [] : chips(r, g)
+    const extra = r === null ? [] : chips(r)
     const extraText = extra.length > 0 ? `│ ${extra.map(c => `${c.text} `).join('')}` : ''
     const dir = truncate(i.dir, MAX_DIR)
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
@@ -335,6 +337,58 @@ export const register: Register = on => {
       show[k] = false
     }
 
+    // the apps have no Nerd Font: each capsule is a small SVG pill with vector icons instead
+    if (e.surface !== 'terminal') {
+      const { Svg } = $.ui.resolve(e)
+      const CI: Record<string, IconName> = { [NERD.ciPass]: 'ciPass', [NERD.ciFail]: 'ciFail', [NERD.ciPending]: 'ciPending' }
+      const pills: { alt: string; bg: string; parts: Part[] }[] = []
+      if (show.acct && i.acct !== null) {
+        pills.push({ alt: `帳號 ${i.acct}`, bg: BG_CC, parts: [{ icon: 'user', color: WHITE }, { text: ` ${i.acct}`, color: WHITE }] })
+      }
+      pills.push({ alt: `模型 ${i.model}`, bg: BG_LOGO, parts: [{ icon: 'logo', color: WHITE }, { text: ` ${i.model}`, color: WHITE }] })
+      if (show.dir) {
+        pills.push({ alt: `資料夾 ${dir}`, bg: BG_DIR, parts: [{ icon: 'dir', color: WHITE }, { text: ` ${dir}`, color: WHITE }] })
+      }
+      if (show.git && branch !== null) {
+        const parts: Part[] = [
+          { icon: 'branch', color: DARK },
+          { text: ` ${branch}  `, color: DARK },
+          { icon: 'diff', color: DARK },
+          { text: ` +${i.add} `, color: FG_ADD },
+          { text: `-${i.del}`, color: FG_DEL },
+        ]
+        if (sync !== '') parts.push({ text: ` ${sync.trimEnd()}`, color: DARK })
+        if (show.extra && extra.length > 0) {
+          parts.push({ text: ' │ ', color: TONE_GIT.dim })
+          extra.forEach((c, idx) => {
+            const name = CI[c.text]
+            if (name !== undefined) parts.push({ icon: name, color: TONE_GIT[c.tone] })
+            else parts.push({ text: `${idx > 0 ? ' ' : ''}${c.text} `, color: TONE_GIT[c.tone] })
+          })
+        }
+        pills.push({ alt: `分支 ${branch}，+${i.add} -${i.del}`, bg: BG_GIT, parts })
+      }
+      if (uses.length > 0) {
+        const parts: Part[] = []
+        uses.forEach(([, n, reset, kind], idx) => {
+          if (idx > 0) parts.push({ text: '   ', color: WHITE })
+          parts.push(kind === 'ctx' ? { pct: n, color: WHITE } : { icon: kind, color: WHITE })
+          parts.push({ text: ` ${Math.floor(n)}%`, color: levelColor(n) })
+          if (show.reset && reset) parts.push({ text: ` ${reset}`, color: DIM_USE })
+        })
+        pills.push({ alt: `用量 ${uses.map(([, n]) => `${Math.floor(n)}%`).join(' ')}`, bg: BG_USE, parts })
+      }
+      const row = (
+        <Box gap={1} flexWrap="wrap">
+          {pills.map(p => {
+            const drawn = pill(p.bg, p.parts)
+            return <Svg key={p.alt} source={drawn.source} alt={p.alt} width={drawn.width} height={drawn.height} />
+          })}
+        </Box>
+      )
+      return below ? <Box flexDirection="column">{row}{below}</Box> : row
+    }
+
     const mine = (
       <Box>
         {show.acct && i.acct !== null && <Cap bg={BG_CC} fg={WHITE}>{` ${I_USER} ${i.acct} `}</Cap>}
@@ -363,7 +417,7 @@ export const register: Register = on => {
             <Text color={BG_USE}>{CAP_L}</Text>
             <Text backgroundColor={BG_USE} color={WHITE}>{' '}</Text>
             {uses.map(([icon, n, reset], idx) => (
-              <Box key={String(idx)}>
+              <Box key={icon}>
                 <Text backgroundColor={BG_USE} color={WHITE}>{`${idx > 0 ? '  ' : ''}${icon} `}</Text>
                 <Text backgroundColor={BG_USE} color={levelColor(n)}>{`${Math.floor(n)}%`}</Text>
                 {show.reset && reset && <Text backgroundColor={BG_USE} color={DIM_USE}>{` ${reset}`}</Text>}

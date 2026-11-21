@@ -3,8 +3,8 @@ import type { Checks, Remote } from '../types'
 export type Tone = 'ok' | 'warn' | 'bad' | 'dim'
 export type Chip = { text: string; tone: Tone }
 
-// The capsule's glyphs. The terminal draws Nerd Font ones; the desktop and mobile apps draw with their own
-// font, which has none of them (each comes out as a striped box), so there the caps go and emoji stand in.
+// The terminal capsule's Nerd Font glyphs. The apps' font has none of them, so there the capsules are SVG
+// pills (pill.ts) instead.
 export type Glyphs = {
   capL: string
   capR: string
@@ -40,24 +40,6 @@ export const NERD: Glyphs = {
   ciPending: '\u{f021}',
 }
 
-export const EMOJI: Glyphs = {
-  capL: '',
-  capR: '',
-  dir: '📁',
-  branch: '🌿',
-  diff: '📝',
-  user: '👤',
-  h5: '⏰',
-  d7: '📅',
-  logo: '🚀',
-  ctx: Array(8).fill('🧠'),
-  ciPass: '✅',
-  ciFail: '❌',
-  ciPending: '🔄',
-}
-
-// only the terminal has the Nerd Font
-export const glyphsFor = (surface: string): Glyphs => (surface === 'terminal' ? NERD : EMOJI)
 
 // gh's statusCheckRollup mixes CheckRun (status/conclusion) and StatusContext (state)
 export const rollup = (items: unknown): Checks => {
