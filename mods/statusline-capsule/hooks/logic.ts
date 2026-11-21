@@ -3,6 +3,62 @@ import type { Checks, Remote } from '../types'
 export type Tone = 'ok' | 'warn' | 'bad' | 'dim'
 export type Chip = { text: string; tone: Tone }
 
+// The capsule's glyphs. The terminal draws Nerd Font ones; the desktop and mobile apps draw with their own
+// font, which has none of them (each comes out as a striped box), so there the caps go and emoji stand in.
+export type Glyphs = {
+  capL: string
+  capR: string
+  dir: string
+  branch: string
+  diff: string
+  user: string
+  h5: string
+  d7: string
+  logo: string
+  // one per eighth of the context used, emptiest first
+  ctx: string[]
+  ciPass: string
+  ciFail: string
+  ciPending: string
+}
+
+export const NERD: Glyphs = {
+  capL: '\u{e0b6}',
+  capR: '\u{e0b4}',
+  dir: '\u{f114}',
+  branch: '\u{f062c}',
+  diff: '\u{f0993}',
+  user: '\u{f1a0}',
+  h5: '\u{f017}',
+  d7: '\u{f455}',
+  logo: '\u{f14de}',
+  ctx: [0xf0a9e, 0xf0a9f, 0xf0aa0, 0xf0aa1, 0xf0aa2, 0xf0aa3, 0xf0aa4, 0xf0aa5].map(c => String.fromCodePoint(c)),
+  // circle-check, circle-x, refresh: these line up with the other icons; the plain U+25CF dot used before
+  // drew below the text baseline in the terminal
+  ciPass: '\u{f058}',
+  ciFail: '\u{f057}',
+  ciPending: '\u{f021}',
+}
+
+export const EMOJI: Glyphs = {
+  capL: '',
+  capR: '',
+  dir: '📁',
+  branch: '🌿',
+  diff: '📝',
+  user: '👤',
+  h5: '⏰',
+  d7: '📅',
+  logo: '🚀',
+  ctx: Array(8).fill('🧠'),
+  ciPass: '✅',
+  ciFail: '❌',
+  ciPending: '🔄',
+}
+
+// only the terminal has the Nerd Font
+export const glyphsFor = (surface: string): Glyphs => (surface === 'terminal' ? NERD : EMOJI)
+
 // gh's statusCheckRollup mixes CheckRun (status/conclusion) and StatusContext (state)
 export const rollup = (items: unknown): Checks => {
   if (!Array.isArray(items) || items.length === 0) return 'none'
@@ -23,7 +79,7 @@ export const rollup = (items: unknown): Checks => {
 }
 
 // what the git capsule says about the PR and CI; nothing when there is nothing to say
-export const chips = (r: Remote): Chip[] => {
+export const chips = (r: Remote, g: Glyphs = NERD): Chip[] => {
   const out: Chip[] = []
 
   if (r.pr) {
@@ -32,11 +88,9 @@ export const chips = (r: Remote): Chip[] => {
     else if (state === 'CLOSED') out.push({ text: `#${n} 已關閉`, tone: 'bad' })
     else out.push({ text: `#${n}${isDraft ? ' 草稿' : ''}`, tone: 'warn' })
 
-    // one Nerd Font icon for the CI state: circle-check, circle-x, refresh. These line up with the capsule's
-    // other icons; the plain U+25CF dot used before drew below the text baseline in the terminal.
-    if (checks === 'pass') out.push({ text: '\u{f058}', tone: 'ok' })
-    else if (checks === 'fail') out.push({ text: '\u{f057}', tone: 'bad' })
-    else if (checks === 'pending') out.push({ text: '\u{f021}', tone: 'warn' })
+    if (checks === 'pass') out.push({ text: g.ciPass, tone: 'ok' })
+    else if (checks === 'fail') out.push({ text: g.ciFail, tone: 'bad' })
+    else if (checks === 'pending') out.push({ text: g.ciPending, tone: 'warn' })
   } else if (r.branch !== r.defaultBranch && r.isInMain) {
     out.push({ text: `已進 ${r.defaultBranch}`, tone: 'ok' })
   }

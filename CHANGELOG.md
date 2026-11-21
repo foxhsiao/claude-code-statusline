@@ -2,6 +2,12 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.7.0
+
+- 桌面與手機 app 改用 emoji 圖示：這兩處用 app 自己的字體，沒有 Nerd Font，原本每個圖示都畫成條紋方塊。現在膠囊兩端拿掉，圖示換成 🚀 📁 🌿 📝 👤 🧠 ⏰ 📅，CI 狀態換成 ✅ ❌ 🔄。
+- 終端機不變，照舊用 Nerd Font。判斷依據是畫的位置（`e.surface`），不是環境變數，所以在桌面 app 的終端機面板裡開的 `claude` 也照樣用 Nerd Font。
+- 窄視窗計算寬度時，emoji 算 2 格。
+
 ## statusline-capsule 0.6.0
 
 - 移除部署狀態：黃色 git 膠囊不再顯示火箭圖示（U+F135，綠、紅、黃加 `?`）。這個比對正式站版本的結果常常對不上，所以整段拿掉。

@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Info, Limit, Pr, Remote } from '../types'
-import { chips, isUnpushed, rollup } from './logic'
+import { chips, glyphsFor, isUnpushed, rollup } from './logic'
 import type { Tone } from './logic'
 
 const info = atom({ plugin: 'statusline-capsule', key: 'info' } as const, null)
@@ -13,20 +13,6 @@ const REMOTE_TTL_MS = 60_000
 // the minute tick fires on the same period and `at` is stamped before the read, so a strict `>` skipped about
 // every other tick (a real refresh every 60-120 s); count a read as due a little early
 const REMOTE_SLACK_MS = 5_000
-
-// Nerd Font glyphs (code points as in statusline.sh)
-const CAP_L = ''
-const CAP_R = ''
-const I_DIR = ''
-const I_BRANCH = '\u{f062c}'
-const I_DIFF = '\u{f0993}'
-const I_USER = ''
-const I_H5 = ''
-const I_D7 = ''
-const I_LOGO = '\u{f14de}'
-const CTX_ICONS = [0xf0a9e, 0xf0a9f, 0xf0aa0, 0xf0aa1, 0xf0aa2, 0xf0aa3, 0xf0aa4, 0xf0aa5].map(c =>
-  String.fromCodePoint(c),
-)
 
 // Google palette
 const BG_CC = '#34a853'
@@ -57,14 +43,15 @@ const modelName = (id: string) => {
   return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
 }
 
-// display cells: CJK / fullwidth count 2, everything else 1 (Nerd Font glyphs are single-cell)
+// display cells: CJK / fullwidth / emoji count 2, everything else 1 (Nerd Font glyphs are single-cell)
 const cells = (str: string) => {
   let w = 0
   for (const ch of str) {
     const c = ch.codePointAt(0) ?? 0
     w += (c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) ||
       (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe6f) || (c >= 0xff00 && c <= 0xff60) ||
-      (c >= 0xffe0 && c <= 0xffe6) ? 2 : 1
+      (c >= 0xffe0 && c <= 0xffe6) || c === 0x23f0 || c === 0x2705 || c === 0x274c ||
+      (c >= 0x1f300 && c <= 0x1faff) ? 2 : 1
   }
   return w
 }
@@ -97,9 +84,9 @@ const fmtReset = (iso: string | null, now: number) => {
   return d > 0 ? `${d}d${h}h` : h > 0 ? `${h}h${m}m` : `${m}m`
 }
 
-const ctxIcon = (n: number) => {
+const ctxIcon = (icons: string[], n: number) => {
   const k = Math.min(8, Math.max(1, Math.floor((n * 8 + 99) / 100)))
-  return CTX_ICONS[k - 1]
+  return icons[k - 1]
 }
 
 async function refresh($: EngineInterface) {
@@ -288,6 +275,8 @@ export const register: Register = on => {
     const r = loaded !== null && i.branch !== null && loaded.branch === i.branch ? loaded : null
 
     const { Box, Text } = $.ui.resolve(e)
+    const g = glyphsFor(e.surface)
+    const { capL: CAP_L, capR: CAP_R, dir: I_DIR, branch: I_BRANCH, diff: I_DIFF, user: I_USER, h5: I_H5, d7: I_D7, logo: I_LOGO } = g
     const now = await $.clock.now()
 
     const Cap = (p: { bg: string; fg: string; children?: unknown }) => (
@@ -302,7 +291,7 @@ export const register: Register = on => {
 
     // icon, percent, time until the window resets (context has none)
     const uses: [string, number, string | null][] = []
-    if (i.ctx !== null) uses.push([ctxIcon(i.ctx), i.ctx, null])
+    if (i.ctx !== null) uses.push([ctxIcon(g.ctx, i.ctx), i.ctx, null])
     if (i.h5 !== null) uses.push([I_H5, i.h5.pct, fmtReset(i.h5.resetsAt, now)])
     if (i.d7 !== null) uses.push([I_D7, i.d7.pct, fmtReset(i.d7.resetsAt, now)])
 
@@ -310,7 +299,7 @@ export const register: Register = on => {
     const unpushed = r !== null && isUnpushed(r, i.hasUpstream)
     const sync = `${i.ahead > 0 ? `↑${i.ahead} ` : ''}${i.behind > 0 ? `↓${i.behind} ` : ''}${unpushed ? '↑新 ' : ''}`
     // PR, CI and production, only when there is something to say
-    const extra = r === null ? [] : chips(r)
+    const extra = r === null ? [] : chips(r, g)
     const extraText = extra.length > 0 ? `│ ${extra.map(c => `${c.text} `).join('')}` : ''
     const dir = truncate(i.dir, MAX_DIR)
     const branch = i.branch === null ? null : truncate(i.branch, MAX_BRANCH)
@@ -374,7 +363,7 @@ export const register: Register = on => {
             <Text color={BG_USE}>{CAP_L}</Text>
             <Text backgroundColor={BG_USE} color={WHITE}>{' '}</Text>
             {uses.map(([icon, n, reset], idx) => (
-              <Box key={icon}>
+              <Box key={String(idx)}>
                 <Text backgroundColor={BG_USE} color={WHITE}>{`${idx > 0 ? '  ' : ''}${icon} `}</Text>
                 <Text backgroundColor={BG_USE} color={levelColor(n)}>{`${Math.floor(n)}%`}</Text>
                 {show.reset && reset && <Text backgroundColor={BG_USE} color={DIM_USE}>{` ${reset}`}</Text>}
