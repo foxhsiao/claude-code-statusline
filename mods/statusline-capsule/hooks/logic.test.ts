@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Remote } from '../types'
-import { chips, EMOJI, glyphsFor, isUnpushed, NERD, rollup } from './logic'
-import type { Glyphs } from './logic'
+import { chips, isUnpushed, NERD, rollup } from './logic'
 
 const base: Remote = {
   branch: 'main',
@@ -93,27 +92,9 @@ describe('isUnpushed', () => {
   })
 })
 
-describe('glyphs', () => {
-  // the Private Use Area holds every Nerd Font glyph; the apps' fonts have none of them
-  const pua = (s: string) => [...s].some(ch => {
-    const c = ch.codePointAt(0) ?? 0
-    return (c >= 0xe000 && c <= 0xf8ff) || c >= 0xf0000
-  })
-  const all = (g: Glyphs) => Object.values(g).flat().join('')
-  const pr: Remote = { ...base, branch: 'feat', pr: { number: 7, state: 'OPEN', isDraft: false, checks: 'pass' } }
-
-  test('the terminal keeps the Nerd Font set', () => {
-    expect(glyphsFor('terminal')).toBe(NERD)
-  })
-  test('the desktop and mobile apps get no Nerd Font glyph and no caps', () => {
-    for (const surface of ['desktop', 'mobile', 'vscode']) {
-      const g = glyphsFor(surface)
-      expect(pua(all(g))).toBe(false)
-      expect(g.capL + g.capR).toBe('')
-    }
-  })
-  test('the CI chip follows the glyph set', () => {
+describe('chips', () => {
+  test('the CI chip is the Nerd Font glyph the pills map to an icon', () => {
+    const pr: Remote = { ...base, branch: 'feat', pr: { number: 7, state: 'OPEN', isDraft: false, checks: 'pass' } }
     expect(texts(pr)).toEqual(['#7', NERD.ciPass])
-    expect(chips(pr, EMOJI).map(c => c.text)).toEqual(['#7', '✅'])
   })
 })
