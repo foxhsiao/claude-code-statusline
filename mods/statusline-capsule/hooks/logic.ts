@@ -52,11 +52,20 @@ export const modelName = (id: string) => {
   return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
 }
 
+// what each alias points at today; the settings keep the alias, so this has to follow new releases by hand
+export const ALIASES: Record<string, string> = {
+  fable: 'claude-fable-5-2',
+  opus: 'claude-opus-5-5',
+  sonnet: 'claude-sonnet-5-5',
+  haiku: 'claude-haiku-5-5',
+}
+
 // the advisorModel setting is an alias (fable) or a model id (claude-fable-5-2); null when unset
 export const advisorName = (raw: unknown): string | null => {
   if (typeof raw !== 'string' || raw.trim() === '') return null
   const v = raw.trim()
-  return v.startsWith('claude-') ? modelName(v) : cap1(v)
+  const id = ALIASES[v.toLowerCase()] ?? v
+  return id.startsWith('claude-') ? modelName(id) : cap1(id)
 }
 
 // gh's statusCheckRollup mixes CheckRun (status/conclusion) and StatusContext (state)
