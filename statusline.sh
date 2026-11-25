@@ -64,6 +64,18 @@ fi
 ACCT=$(jq -r '.oauthAccount.displayName // .oauthAccount.emailAddress // empty' \
         "$HOME/.claude.json" 2>/dev/null)
 
+# advisor：payload 沒有這個欄位，從 settings 取（後面的檔案蓋前面的）
+ADVISOR=""
+for f in "$HOME/.claude/settings.json" "$CUR_DIR/.claude/settings.json" "$CUR_DIR/.claude/settings.local.json"; do
+  v=$(jq -r '.advisorModel // empty' "$f" 2>/dev/null)
+  [ -n "$v" ] && ADVISOR=$v
+done
+# claude-fable-5-2 -> Fable 5.2，fable -> Fable
+case "$ADVISOR" in
+  claude-*) ADVISOR=$(printf '%s' "$ADVISOR" | sed -E 's/^claude-([a-z]+)-([0-9]+)(-([0-9]{1,2}))?(-[0-9]{8})?$/\1 \2.\4/; s/\.$//') ;;
+esac
+[ -n "$ADVISOR" ] && ADVISOR="$(printf '%s' "${ADVISOR:0:1}" | tr '[:lower:]' '[:upper:]')${ADVISOR:1}"
+
 # ── 色碼工具 ───────────────────────────────────────────────────
 esc() { # $1=3(前景)|4(背景)  $2=hex
   printf '\033[%s8;2;%d;%d;%dm' "$1" \
@@ -97,6 +109,7 @@ capo() { # $1=底色 $2=文字 $3=邊框 $4=內容
 # ── 第二顆：火箭標誌 + 目前模型 ─────────────────────────────────────────────
 LOGO_TXT=" $I_LOGO "
 [ -n "$MODEL" ] && LOGO_TXT=" $I_LOGO ${MODEL%% (*} "
+[ -n "$MODEL" ] && [ -n "$ADVISOR" ] && LOGO_TXT=" $I_LOGO ${MODEL%% (*} · 顧問 $ADVISOR "
 cap "$BG_LOGO" "$FG_LOGO" "$LOGO_TXT"
 
 # ── 第三顆：目前資料夾 ─────────────────────────────────────────

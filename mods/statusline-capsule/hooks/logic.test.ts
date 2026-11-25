@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import type { Remote } from '../types'
-import { chips, isUnpushed, NERD, rollup } from './logic'
+import { advisorName, chips, isUnpushed, modelName, NERD, rollup } from './logic'
 
 const base: Remote = {
   branch: 'main',
@@ -96,5 +96,21 @@ describe('chips', () => {
   test('the CI chip is the Nerd Font glyph the pills map to an icon', () => {
     const pr: Remote = { ...base, branch: 'feat', pr: { number: 7, state: 'OPEN', isDraft: false, checks: 'pass' } }
     expect(texts(pr)).toEqual(['#7', NERD.ciPass])
+  })
+})
+
+describe('advisorName', () => {
+  test('unset or blank shows nothing', () => {
+    expect(advisorName(undefined)).toBe(null)
+    expect(advisorName('')).toBe(null)
+    expect(advisorName(42)).toBe(null)
+  })
+  test('an alias is capitalized', () => {
+    expect(advisorName('fable')).toBe('Fable')
+    expect(advisorName('opus')).toBe('Opus')
+  })
+  test('a model id reads like the model pill', () => {
+    expect(advisorName('claude-fable-5-2')).toBe('Fable 5.2')
+    expect(advisorName('claude-fable-5-2')).toBe(modelName('claude-fable-5-2'))
   })
 })
