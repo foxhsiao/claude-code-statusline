@@ -2,6 +2,12 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.9.1
+
+- `advisorModel` 設成短名時，也顯示版本：`fable` 顯示「顧問 Fable 5.2」。
+- 對照表在 `hooks/logic.ts` 的 `ALIASES`（fable、opus、sonnet、haiku）。新模型出來時要手動改，表裡沒有的短名照舊只把開頭變大寫。
+- `statusline.sh` 沒有加這張表。
+
 ## statusline-capsule 0.9.0
 
 - 紅色模型膠囊會顯示 advisor 模型，例如 `Opus 5.5 · 顧問 Fable`。沒設 advisor 就照舊只顯示模型。

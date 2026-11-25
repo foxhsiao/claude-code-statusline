@@ -105,9 +105,12 @@ describe('advisorName', () => {
     expect(advisorName('')).toBe(null)
     expect(advisorName(42)).toBe(null)
   })
-  test('an alias is capitalized', () => {
-    expect(advisorName('fable')).toBe('Fable')
-    expect(advisorName('opus')).toBe('Opus')
+  test('a known alias shows the version it points at', () => {
+    expect(advisorName('fable')).toBe('Fable 5.2')
+    expect(advisorName('Opus')).toBe('Opus 5.5')
+  })
+  test('an unknown alias is only capitalized', () => {
+    expect(advisorName('mythos')).toBe('Mythos')
   })
   test('a model id reads like the model pill', () => {
     expect(advisorName('claude-fable-5-2')).toBe('Fable 5.2')
