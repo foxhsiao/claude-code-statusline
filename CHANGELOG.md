@@ -2,6 +2,10 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline.sh（2026-11-25）
+
+- `statusline.sh` 也加上短名對照表，`advisorModel` 設成 `fable` 時顯示「顧問 Fable 5.2」。表的內容跟 mod 的 `ALIASES` 一樣，新模型出來時兩邊要一起改。mod 本身沒有變動，版本不變。
+
 ## statusline-capsule 0.9.1
 
 - `advisorModel` 設成短名時，也顯示版本：`fable` 顯示「顧問 Fable 5.2」。

@@ -70,7 +70,14 @@ for f in "$HOME/.claude/settings.json" "$CUR_DIR/.claude/settings.json" "$CUR_DI
   v=$(jq -r '.advisorModel // empty' "$f" 2>/dev/null)
   [ -n "$v" ] && ADVISOR=$v
 done
-# claude-fable-5-2 -> Fable 5.2，fable -> Fable
+# 短名對到今天的型號（跟 mod 的 hooks/logic.ts ALIASES 同一張表，新模型出來要一起改）
+case "$(printf '%s' "$ADVISOR" | tr '[:upper:]' '[:lower:]')" in
+  fable)  ADVISOR="claude-fable-5-2" ;;
+  opus)   ADVISOR="claude-opus-5-5" ;;
+  sonnet) ADVISOR="claude-sonnet-5-5" ;;
+  haiku)  ADVISOR="claude-haiku-5-5" ;;
+esac
+# claude-fable-5-2 -> Fable 5.2；表裡沒有的短名只把開頭變大寫
 case "$ADVISOR" in
   claude-*) ADVISOR=$(printf '%s' "$ADVISOR" | sed -E 's/^claude-([a-z]+)-([0-9]+)(-([0-9]{1,2}))?(-[0-9]{8})?$/\1 \2.\4/; s/\.$//') ;;
 esac
