@@ -2,7 +2,7 @@
 
 Claude Code 的 powerline 膠囊風格狀態列（Google 四色）。
 
-顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`）｜ 資料夾 ｜ git 分支與增刪行數（有 PR、CI 時一併顯示）｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
+顯示：帳號 ｜ 火箭 logo + 目前模型（如 `Sonnet 5.5`，有設 advisor 時接 `· 顧問 Fable 5.2`）｜ 資料夾 ｜ git 分支與增刪行數（有 PR、CI 時一併顯示）｜ 用量（context %、5h %、7d %，5h／7d 旁附距離重設的倒數，如 `2h10m`）
 
 有兩種版本：
 
@@ -130,6 +130,27 @@ claude plugin install statusline-capsule --marketplace foxhsiao/claude-code-stat
 
 帳號那一格讀的是 `~/.claude.json`（Windows 上是 `C:\Users\<使用者名稱>\.claude.json`）。帳號是空的話先查這個檔案在不在。
 
+### 模型膠囊：顧問
+
+用 `/advisor` 設了 advisor 模型時，紅色模型膠囊會在模型後面加上它，例如 `Opus 5.5 · 顧問 Fable 5.2`。沒設 advisor 就只顯示模型。
+
+| `advisorModel` 的值 | 顯示 |
+| --- | --- |
+| `fable`（`/advisor fable` 寫入的短名） | `顧問 Fable 5.2` |
+| `claude-fable-5-2`（完整 model ID） | `顧問 Fable 5.2` |
+| 對照表裡沒有的短名，例如 `mythos` | `顧問 Mythos`（只把開頭變大寫） |
+| 沒設 | 不顯示 |
+
+- Claude Code 給狀態列的資料裡沒有 advisor 欄位，所以兩個版本都改讀 settings 的 `advisorModel`。mod 版讀合併後的 settings；shell script 版依序讀 `~/.claude/settings.json`、專案的 `.claude/settings.json`、`.claude/settings.local.json`，後面的蓋前面的。
+- 用 `--advisor` 參數開的 session 看不到，因為這個參數不會寫進 settings。
+
+**新模型出來時要改短名對照表。** `/advisor` 寫進 settings 的是短名（`fable`、`opus`、`sonnet`、`haiku`），裡面沒有版本號。版本號來自一張手寫的對照表，兩個版本各有一份，內容要一樣：
+
+- mod 版：`mods/statusline-capsule/hooks/logic.ts` 的 `ALIASES`
+- shell script 版：`statusline.sh` 裡 advisor 那段的 `case`
+
+沒改的話，膠囊會繼續顯示舊的版本號。改 mod 版的表之後，`hooks/logic.test.ts` 裡 `advisorName` 的測試也要跟著改。
+
 ### git 膠囊：↑↓、PR、CI
 
 黃色 git 膠囊在分支與增刪行數後面，視情況多顯示這些內容：
@@ -225,7 +246,7 @@ chmod +x ~/.claude/statusline.sh
 
 ## 自訂
 
-**mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區，名稱長度上限 `MAX_DIR`／`MAX_BRANCH` 也在這個檔案；模型顯示名稱由 `modelName()` 從 model ID 轉出。
+**mod 版**：圖示、配色在 `mods/statusline-capsule/hooks/register.tsx` 上方的常數區，名稱長度上限 `MAX_DIR`／`MAX_BRANCH` 也在這個檔案；模型顯示名稱由 `hooks/logic.ts` 的 `modelName()` 從 model ID 轉出，advisor 短名對照表 `ALIASES` 也在這個檔案。
 
 **shell script 版**：
 
