@@ -2,6 +2,13 @@
 
 statusline-capsule 的版本紀錄（ship-band 已併入，見 0.5.0）。
 
+## statusline-capsule 0.9.0
+
+- 紅色模型膠囊會顯示 advisor 模型，例如 `Opus 5.5 · 顧問 Fable`。沒設 advisor 就照舊只顯示模型。
+- 資料來源是 settings 的 `advisorModel`（`/advisor` 會寫進去）。Claude Code 給狀態列的資料裡沒有這個欄位。
+- 用 `--advisor` 參數開的 session 看不到，因為它不寫進 settings。
+- `statusline.sh` 也一起加上，讀全域、專案、專案 local 三個 settings 檔。
+
 ## statusline-capsule 0.8.0
 
 - 桌面與手機 app 不再用 emoji：每顆膠囊改畫成一個小 SVG，有圓角膠囊底、白色線條圖示（星星、資料夾、分支、增刪、帳號、時鐘、日曆、CI 勾／叉／重跑）和等寬字。

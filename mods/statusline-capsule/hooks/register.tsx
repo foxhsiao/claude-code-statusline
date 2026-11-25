@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Info, Limit, Pr, Remote } from '../types'
-import { chips, isUnpushed, NERD, rollup } from './logic'
+import { advisorName, chips, isUnpushed, modelName, NERD, rollup } from './logic'
 import { pill } from './pill'
 import type { IconName, Part } from './pill'
 import type { Tone } from './logic'
@@ -32,18 +32,6 @@ const TONE_GIT: Record<Tone, string> = { ok: FG_ADD, warn: '#8a4b00', bad: FG_DE
 
 const levelColor = (n: number) =>
   n >= 90 ? '#f28b82' : n >= 75 ? '#fcad70' : n >= 60 ? '#fdd663' : n >= 40 ? '#81c995' : WHITE
-
-// claude-sonnet-5-5 -> Sonnet 5.5, claude-3-5-sonnet-20241022 -> Sonnet 3.5; anything else as is
-const cap1 = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
-const modelName = (id: string) => {
-  const base = id.replace(/\[.*\]$/, '').replace(/ \(.*/, '')
-  const m =
-    /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(base) ??
-    /^claude-(\d+)(?:-(\d{1,2}))?-([a-z]+)(?:-\d{8})?$/.exec(base)
-  if (!m) return base
-  const [family, major, minor] = /^\d/.test(m[1]) ? [m[3], m[1], m[2]] : [m[1], m[2], m[3]]
-  return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
-}
 
 // display cells: CJK / fullwidth count 2, everything else 1 (Nerd Font glyphs are single-cell)
 const cells = (str: string) => {
@@ -128,6 +116,13 @@ async function refresh($: EngineInterface) {
     branch = null
   }
 
+  let advisor: string | null = null
+  try {
+    advisor = advisorName((await $.settings.read()).advisorModel)
+  } catch {
+    advisor = null
+  }
+
   let acct: string | null = null
   try {
     const home = (await $.process.run(['printenv', 'HOME'])).stdout.trim()
@@ -138,7 +133,7 @@ async function refresh($: EngineInterface) {
   }
 
   const next: Info = {
-    model,
+    model: advisor === null ? model : `${model} · 顧問 ${advisor}`,
     dir: cwd.split('/').filter(Boolean).pop() ?? cwd,
     branch,
     add,

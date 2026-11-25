@@ -40,6 +40,24 @@ export const NERD: Glyphs = {
   ciPending: '\u{f021}',
 }
 
+// claude-sonnet-5-5 -> Sonnet 5.5, claude-3-5-sonnet-20241022 -> Sonnet 3.5; anything else as is
+const cap1 = (w: string) => w.charAt(0).toUpperCase() + w.slice(1)
+export const modelName = (id: string) => {
+  const base = id.replace(/\[.*\]$/, '').replace(/ \(.*/, '')
+  const m =
+    /^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(base) ??
+    /^claude-(\d+)(?:-(\d{1,2}))?-([a-z]+)(?:-\d{8})?$/.exec(base)
+  if (!m) return base
+  const [family, major, minor] = /^\d/.test(m[1]) ? [m[3], m[1], m[2]] : [m[1], m[2], m[3]]
+  return `${cap1(family)} ${major}${minor ? `.${minor}` : ''}`
+}
+
+// the advisorModel setting is an alias (fable) or a model id (claude-fable-5-2); null when unset
+export const advisorName = (raw: unknown): string | null => {
+  if (typeof raw !== 'string' || raw.trim() === '') return null
+  const v = raw.trim()
+  return v.startsWith('claude-') ? modelName(v) : cap1(v)
+}
 
 // gh's statusCheckRollup mixes CheckRun (status/conclusion) and StatusContext (state)
 export const rollup = (items: unknown): Checks => {
